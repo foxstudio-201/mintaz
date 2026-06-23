@@ -200,3 +200,16 @@ CREATE TABLE IF NOT EXISTS dashboard_views (
 );
 
 CREATE INDEX IF NOT EXISTS idx_dashviews_ts ON dashboard_views(timestamp);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL DEFAULT 'info',
+  title      TEXT NOT NULL,
+  body       TEXT,
+  link       TEXT,
+  seen       INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at);

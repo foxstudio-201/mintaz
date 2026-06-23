@@ -7,6 +7,7 @@ import { useTheme } from '../store/theme';
 import { LANGUAGES, setLanguage, type Lang } from '../i18n';
 import { IconProjects, IconPlusCircle, IconGear, IconShield, IconSun, IconMoon, MintazLogo, IconChart, IconMenu, IconX, IconGithub } from './icons';
 import { FLAGS } from './icons/Flags';
+import { NotificationBell } from './NotificationBell';
 import { Avatar } from './Avatar';
 
 export const GITHUB_URL = 'https://github.com/foxstudio-201/mintaz';
@@ -159,6 +160,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <div className="flex items-center gap-2">
           <LanguageToggle />
           <ThemeSwitch />
+          <NotificationBell />
         </div>
         <button
           onClick={() => {

@@ -3,6 +3,8 @@ import { stopDeployment, destroyPreview } from '../services/deploy.js';
 import { getLogs } from '../services/logs.js';
 import { getHealth, healthSummary } from '../services/monitor.js';
 import { listDir, readFileSafe } from '../services/files.js';
+import { getScreenshot, screenshotAvailable } from '../services/screenshot.js';
+import { createReadStream } from 'fs';
 
 async function ownProject(request, reply, projectId) {
   const p = await db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
@@ -67,6 +69,18 @@ export default async function deploymentRoutes(fastify) {
     if (!d) return;
     await stopDeployment(d.id);
     return { ok: true };
+  });
+
+  fastify.get('/:id/screenshot', async (request, reply) => {
+    const d = await ownDeployment(request, reply);
+    if (!d) return;
+    if (!screenshotAvailable()) return reply.code(503).send({ error: 'screenshot unavailable' });
+    if (d.status !== 'running' || !d.url) return reply.code(409).send({ error: 'deployment not running' });
+    const force = request.query.refresh === '1';
+    const path = await getScreenshot(d.id, d.url, force);
+    if (!path) return reply.code(502).send({ error: 'capture failed' });
+    reply.header('Cache-Control', 'no-store');
+    return reply.type('image/png').send(createReadStream(path));
   });
 
   fastify.get('/:id/health', async (request, reply) => {

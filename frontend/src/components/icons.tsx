@@ -373,6 +373,16 @@ export function IconMenu({ className }: IconProps) {
   );
 }
 
+export function IconBell({ className }: IconProps) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M6 9.5a6 6 0 0 1 12 0c0 3.5 1 4.8 2 5.8.5.5.1 1.2-.6 1.2H4.6c-.7 0-1.1-.7-.6-1.2 1-1 2-2.3 2-5.8Z" fill="currentColor" opacity="0.2" />
+      <path d="M6 9.5a6 6 0 0 1 12 0c0 3.5 1 4.8 2 5.8.5.5.1 1.2-.6 1.2H4.6c-.7 0-1.1-.7-.6-1.2 1-1 2-2.3 2-5.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9.5 18.5a2.5 2.5 0 0 0 5 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconRefresh({ className }: IconProps) {
   return (
     <Icon className={className}>

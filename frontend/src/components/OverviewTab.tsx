@@ -26,6 +26,8 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
     return () => clearInterval(t);
   }, []);
 
+  const [shot, setShot] = useState<{ url: string; state: 'loading' | 'ready' | 'error' }>({ url: '', state: 'loading' });
+
   const previewUrl = deployment?.url || project.production_url;
   const isRunning = deployment?.status === 'running';
 
@@ -48,6 +50,17 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
       clearInterval(t);
     };
   }, [previewUrl, isRunning, reloadKey]);
+
+  useEffect(() => {
+    if (!isRunning || !deployment) return;
+    let alive = true;
+    let objUrl = '';
+    setShot({ url: '', state: 'loading' });
+    api.deploymentScreenshot(deployment.id, reloadKey > 0)
+      .then((u) => { if (alive) { objUrl = u; setShot({ url: u, state: 'ready' }); } })
+      .catch(() => { if (alive) setShot({ url: '', state: 'error' }); });
+    return () => { alive = false; if (objUrl) URL.revokeObjectURL(objUrl); };
+  }, [deployment?.id, isRunning, reloadKey]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -78,8 +91,20 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
               </div>
               <a className="btn-ghost inline-flex items-center gap-1 text-xs" href={previewUrl} target="_blank" rel="noreferrer">{t('overview.openNewTab')} <IconExternalLink className="w-3 h-3" /></a>
             </div>
+          ) : shot.state === 'error' ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 bg-ink-950 px-6 text-center">
+              <IconGlobe className="w-8 h-8 text-slate-500" />
+              <div className="text-sm font-medium text-slate-300">{t('overview.shotUnavailable')}</div>
+              <a className="btn-ghost inline-flex items-center gap-1 text-xs" href={previewUrl} target="_blank" rel="noreferrer">{t('overview.openNewTab')} <IconExternalLink className="w-3 h-3" /></a>
+            </div>
+          ) : shot.state === 'loading' ? (
+            <div className="flex h-full items-center justify-center bg-ink-950">
+              <IconRefresh className="w-6 h-6 animate-spin text-slate-500" />
+            </div>
           ) : (
-            <iframe key={reloadKey} src={previewUrl} title="preview" className="h-full w-full" sandbox="allow-scripts allow-same-origin allow-forms" />
+            <a href={previewUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
+              <img src={shot.url} alt="preview" className="h-full w-full object-cover object-top" />
+            </a>
           )}
         </div>
       </div>

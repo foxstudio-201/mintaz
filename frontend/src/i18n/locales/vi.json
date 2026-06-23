@@ -1,4 +1,9 @@
 {
+  "notifications": {
+    "title": "Thông báo",
+    "empty": "Chưa có thông báo nào",
+    "clear": "Xóa tất cả"
+  },
   "common": {
     "save": "Lưu",
     "cancel": "Hủy",
@@ -315,6 +320,7 @@
     "unreachableTitle": "Ứng dụng đang chạy, nhưng URL chưa truy cập được.",
     "unreachableBody": "DNS có thể vẫn đang lan truyền, hoặc tunnel chưa định tuyến <0>{{url}}</0> tới proxy của Mintaz. Gắn/tự tạo tên miền trong tab <1>Tên miền</1>.",
     "openNewTab": "Mở trong tab mới",
+    "shotUnavailable": "Không tạo được ảnh chụp xem trước",
     "production": "Production",
     "url": "URL",
     "branch": "Nhánh",

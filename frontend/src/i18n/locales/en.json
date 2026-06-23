@@ -1,4 +1,9 @@
 {
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "clear": "Clear all"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -315,6 +320,7 @@
     "unreachableTitle": "The app is running, but its URL isn’t reachable yet.",
     "unreachableBody": "DNS may still be propagating, or the tunnel isn’t routing <0>{{url}}</0> to Mintaz’s proxy yet. Attach/auto-create the domain in the <1>Domain</1> tab.",
     "openNewTab": "Open in new tab",
+    "shotUnavailable": "Preview snapshot unavailable",
     "production": "Production",
     "url": "URL",
     "branch": "Branch",

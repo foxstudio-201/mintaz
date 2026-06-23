@@ -134,6 +134,14 @@ export const api = {
   rotateSecret: (id: string) => req<{ webhook_secret: string }>(`/projects/${id}/rotate-secret`, { method: 'POST' }),
 
   deploymentHealth: (id: string, since = 0) => req<{ summary: HealthSummary; checks: HealthCheck[] }>(`/deployments/${id}/health?since=${since}`),
+  deploymentScreenshot: async (id: string, refresh = false): Promise<string> => {
+    const token = tokenStore.get();
+    const res = await fetch(`/api/deployments/${id}/screenshot${refresh ? '?refresh=1' : ''}`, {
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`screenshot failed (${res.status})`);
+    return URL.createObjectURL(await res.blob());
+  },
   deploymentFiles: (id: string, path = '') => req<{ path: string; entries: FileEntry[] }>(`/deployments/${id}/files?path=${encodeURIComponent(path)}`),
   deploymentFile: (id: string, path: string) => req<FileContent>(`/deployments/${id}/file?path=${encodeURIComponent(path)}`),
 
@@ -204,6 +212,20 @@ export const api = {
   analyticsDevices: (deploymentId: string, days: number) => req<any>(`/analytics/${deploymentId}/devices?days=${days}`),
   analyticsVisitors: (deploymentId: string, days: number) => req<{ visitors: any[] }>(`/analytics/${deploymentId}/visitors?days=${days}`),
   analyticsEvents: (deploymentId: string, days: number) => req<{ events: any[] }>(`/analytics/${deploymentId}/events?days=${days}`),
+
+  notifications: () => req<{ notifications: Notification[]; unread: number }>('/notifications'),
+  notificationsRead: () => req<{ ok: boolean }>('/notifications/read', { method: 'POST' }),
+  notificationsClear: () => req<{ ok: boolean }>('/notifications', { method: 'DELETE' }),
+};
+
+export type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  seen: number;
+  created_at: number;
 };
 
 export type GithubStatus = { configured: boolean; connected: boolean; login: string | null; avatar: string | null };

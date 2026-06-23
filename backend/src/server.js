@@ -24,6 +24,7 @@ import wsRoutes from './routes/ws.js';
 import quotaRoutes from './routes/quotas.js';
 import trackRoutes from './routes/track.js';
 import analyticsRoutes from './routes/analytics.js';
+import notificationRoutes from './routes/notifications.js';
 import { resumeOnBoot } from './services/deploy.js';
 import { startMonitor } from './services/monitor.js';
 import { startEdgeProxy } from './services/edgeproxy.js';
@@ -86,6 +87,7 @@ await fastify.register(systemRoutes, { prefix: '/api' });
 await fastify.register(quotaRoutes, { prefix: '/api/quotas' });
 await fastify.register(trackRoutes, { prefix: '/api' });
 await fastify.register(analyticsRoutes, { prefix: '/api/analytics' });
+await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

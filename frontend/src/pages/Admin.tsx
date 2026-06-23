@@ -121,29 +121,29 @@ function SystemTab() {
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
-              <div className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] gap-3 border-b border-black/[0.06] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-white/[0.06]">
-                <span>{t('admin.traffic.visitor')}</span>
-                <span>{t('admin.traffic.location')}</span>
-                <span>{t('admin.traffic.device')}</span>
-                <span className="text-right">{t('admin.traffic.visits')}</span>
-                <span className="text-right">{t('admin.traffic.lastSeen')}</span>
+              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1.4fr)_88px_112px] divide-x divide-black/[0.06] border-b border-black/[0.06] text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:divide-white/[0.06] dark:border-white/[0.06]">
+                <span className="px-4 py-2">{t('admin.traffic.visitor')}</span>
+                <span className="px-4 py-2">{t('admin.traffic.location')}</span>
+                <span className="px-4 py-2">{t('admin.traffic.device')}</span>
+                <span className="px-4 py-2 text-right">{t('admin.traffic.visits')}</span>
+                <span className="px-4 py-2 text-right">{t('admin.traffic.lastSeen')}</span>
               </div>
               {data.visitors.map((v, i) => (
-                <div key={v.id + i} className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] items-center gap-3 border-b border-black/[0.04] px-4 py-2.5 text-sm last:border-0 dark:border-white/[0.03]">
-                  <span className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/15 text-[10px] font-bold text-brand-500">{(v.id || '?')[0].toUpperCase()}</span>
-                    <span className="font-mono text-xs text-slate-500">{v.id}</span>
+                <div key={v.id + i} className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1.4fr)_88px_112px] divide-x divide-black/[0.04] border-b border-black/[0.04] text-sm last:border-0 dark:divide-white/[0.03] dark:border-white/[0.03]">
+                  <span className="flex min-w-0 items-center gap-2 px-4 py-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-[10px] font-bold text-brand-500">{(v.id || '?')[0].toUpperCase()}</span>
+                    <span className="truncate font-mono text-xs text-slate-500">{v.id}</span>
                   </span>
-                  <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                    <span>{flagEmoji(v.country)}</span>
+                  <span className="flex min-w-0 items-center gap-1.5 px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                    <span className="shrink-0">{flagEmoji(v.country)}</span>
                     <span className="truncate">{[v.city, v.country].filter(Boolean).join(', ') || t('admin.traffic.unknown')}</span>
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs">
-                    <span className="rounded-md bg-black/[0.05] px-1.5 py-0.5 capitalize text-slate-600 dark:bg-white/[0.06] dark:text-slate-300">{v.device || '—'}</span>
+                  <span className="flex min-w-0 items-center gap-1.5 px-4 py-2.5 text-xs">
+                    <span className="shrink-0 rounded-md bg-black/[0.05] px-1.5 py-0.5 capitalize text-slate-600 dark:bg-white/[0.06] dark:text-slate-300">{v.device || '—'}</span>
                     <span className="truncate text-slate-500">{v.browser || ''}</span>
                   </span>
-                  <span className="text-right font-semibold text-slate-800 dark:text-slate-100">{v.visits}</span>
-                  <span className="text-right text-xs text-slate-500">{timeAgo(v.last)}</span>
+                  <span className="flex items-center justify-end px-4 py-2.5 text-right font-semibold text-slate-800 dark:text-slate-100">{v.visits}</span>
+                  <span className="flex items-center justify-end px-4 py-2.5 text-right text-xs text-slate-500">{timeAgo(v.last)}</span>
                 </div>
               ))}
             </div>

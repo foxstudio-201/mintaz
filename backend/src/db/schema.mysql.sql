@@ -211,3 +211,16 @@ CREATE TABLE IF NOT EXISTS dashboard_views (
   language      VARCHAR(32),
   KEY idx_dashviews_ts (`timestamp`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id         VARCHAR(64) PRIMARY KEY,
+  user_id    VARCHAR(64) NOT NULL,
+  type       VARCHAR(32) NOT NULL DEFAULT 'info',
+  title      VARCHAR(255) NOT NULL,
+  body       TEXT,
+  link       VARCHAR(255),
+  seen       TINYINT NOT NULL DEFAULT 0,
+  created_at BIGINT NOT NULL,
+  KEY idx_notif_user (user_id, created_at),
+  CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -24,6 +24,7 @@ import { getSetting, getSecretSetting } from './settings.js';
 import { decryptSecret } from '../util/crypto.js';
 import { checkDeployQuota } from './quotas.js';
 import { recordBuildTime } from './usage-monitor.js';
+import { notify } from './notifications.js';
 
 const runtimeFollowers = new Map();
 
@@ -203,6 +204,12 @@ export async function runPipeline(deploymentId) {
     log(`✅ Live at ${url}`);
 
     await recordBuildTime(deploymentId);
+    await notify(project.user_id, {
+      type: 'deploy_success',
+      title: `${project.name} deployed`,
+      body: `${deployment.type} · ${deployment.branch} is live at ${url}`,
+      link: `/projects/${project.id}`,
+    });
 
     attachRuntimeLogs(deploymentId, containerName);
 
@@ -210,6 +217,12 @@ export async function runPipeline(deploymentId) {
     await appendLog(deploymentId, `✖ Deployment failed: ${err.message}`, 'system');
     await setStatus(deploymentId, 'failed', { error: err.message, finished_at: now() });
     await recordBuildTime(deploymentId);
+    await notify(project.user_id, {
+      type: 'deploy_failed',
+      title: `${project.name} deploy failed`,
+      body: `${deployment.branch}: ${err.message}`,
+      link: `/projects/${project.id}`,
+    });
   }
 }
 
