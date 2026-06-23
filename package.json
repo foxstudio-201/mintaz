@@ -14,6 +14,7 @@
     "db:init": "npm --prefix backend run db:init",
     "start": "npm --prefix backend run start",
     "dev:api": "npm --prefix backend run dev",
-    "dev:web": "npm --prefix frontend run dev"
+    "dev:web": "npm --prefix frontend run dev",
+    "update": "bash update.sh"
   }
 }

@@ -155,7 +155,9 @@
       "restartNote": "Đang cập nhật… dịch vụ sẽ tự khởi động lại khi xong.",
       "restarting": "Dịch vụ đang khởi động lại…",
       "starting": "Bắt đầu cập nhật…",
-      "checkError": "Không kiểm tra được: {{error}}"
+      "checkError": "Không kiểm tra được: {{error}}",
+      "maintenance": "Chế độ bảo trì",
+      "maintenanceHint": "Hiện trang bảo trì cho khách. Tự bật khi đang cập nhật."
     },
     "row": {
       "dockerEngine": "Docker engine",

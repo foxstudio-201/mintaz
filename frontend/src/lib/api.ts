@@ -190,6 +190,8 @@ export const api = {
   adminUpdateCheck: () => req<UpdateInfo>('/admin/update/check'),
   adminUpdateApply: () => req<{ started: boolean }>('/admin/update/apply', { method: 'POST' }),
   adminUpdateStatus: () => req<{ running: boolean; done: boolean; ok: boolean; log: string[]; startedAt: number }>('/admin/update/status'),
+  adminMaintenance: () => req<{ on: boolean; info: any }>('/admin/maintenance'),
+  adminSetMaintenance: (on: boolean) => req<{ on: boolean }>('/admin/maintenance', { method: 'POST', body: JSON.stringify({ on }) }),
   adminSaveSettings: (body: { allow_registration: boolean }) =>
     req<{ ok: boolean; allow_registration: boolean }>('/admin/settings', { method: 'POST', body: JSON.stringify(body) }),
 

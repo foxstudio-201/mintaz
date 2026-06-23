@@ -12,12 +12,24 @@ export function UpdatesCard() {
   const [checking, setChecking] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [log, setLog] = useState<string[]>([]);
+  const [maint, setMaint] = useState<boolean | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     api.adminVersion().then((v) => setVersion(v.version)).catch(() => {});
+    api.adminMaintenance().then((m) => setMaint(m.on)).catch(() => {});
     return () => { if (poll.current) clearInterval(poll.current); };
   }, []);
+
+  const toggleMaint = async (next: boolean) => {
+    setMaint(next);
+    try {
+      await api.adminSetMaintenance(next);
+    } catch (e: any) {
+      toast.error(e.message);
+      setMaint(!next);
+    }
+  };
 
   const check = async () => {
     setChecking(true);
@@ -71,6 +83,24 @@ export function UpdatesCard() {
           {checking ? <Spinner /> : <IconRefresh className="w-4 h-4" />} {t('settings.updates.check')}
         </button>
       </div>
+
+      {maint !== null && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] px-3 py-2.5 dark:border-white/[0.06]">
+          <div>
+            <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('settings.updates.maintenance')}</div>
+            <div className="text-xs text-slate-500">{t('settings.updates.maintenanceHint')}</div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={maint}
+            onClick={() => toggleMaint(!maint)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${maint ? 'bg-amber-500' : 'bg-black/[0.12] dark:bg-white/10'}`}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${maint ? 'left-[22px]' : 'left-0.5'}`} />
+          </button>
+        </div>
+      )}
 
       {info && !info.error && !info.updateAvailable && (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">

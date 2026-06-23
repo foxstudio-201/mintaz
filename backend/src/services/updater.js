@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run, stream } from '../util/sh.js';
 import { config } from '../config.js';
+import { setMaintenance } from './maintenance.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..', '..');
@@ -80,6 +81,8 @@ async function runUpdate() {
   const { owner, name, branch } = config.repo;
   const url = `https://github.com/${owner}/${name}.git`;
   try {
+    setMaintenance(true, 'update');
+    push('▶ Maintenance mode ON');
     push(`▶ Fetching ${url} (${branch})`);
     if ((await stream('git', ['fetch', url, branch], { cwd: ROOT, onLine: push })) !== 0) throw new Error('git fetch failed');
     push('▶ Applying changes (git reset --hard FETCH_HEAD)');
@@ -94,6 +97,7 @@ async function runUpdate() {
     state.ok = true;
     state.done = true;
     state.running = false;
+    setMaintenance(false);
     if (process.env.INVOCATION_ID) {
       push('✅ Update applied. Restarting service…');
       setTimeout(() => process.exit(0), 1500);
@@ -102,6 +106,7 @@ async function runUpdate() {
     }
   } catch (err) {
     push(`✖ Update failed: ${err.message}`);
+    setMaintenance(false);
     state.ok = false;
     state.done = true;
     state.running = false;

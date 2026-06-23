@@ -155,7 +155,9 @@
       "restartNote": "Updating… the service will restart automatically when done.",
       "restarting": "Service restarting…",
       "starting": "Starting update…",
-      "checkError": "Could not check: {{error}}"
+      "checkError": "Could not check: {{error}}",
+      "maintenance": "Maintenance mode",
+      "maintenanceHint": "Show a maintenance page to visitors. Auto-enabled during updates."
     },
     "row": {
       "dockerEngine": "Docker engine",

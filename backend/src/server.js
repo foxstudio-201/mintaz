@@ -7,7 +7,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config, publicBaseUrl } from './config.js';
-import './db/index.js';
+import { db } from './db/index.js';
+import { isMaintenance, maintenancePage } from './services/maintenance.js';
 
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth.js';
@@ -52,6 +53,26 @@ await fastify.register(cors, {
 });
 await fastify.register(websocket);
 await fastify.register(authPlugin);
+
+fastify.addHook('onRequest', async (request, reply) => {
+  if (!isMaintenance()) return;
+  const url = request.raw.url || '';
+  if (
+    url.startsWith('/api/admin/maintenance') ||
+    url.startsWith('/api/auth/login') ||
+    url.startsWith('/api/auth/me') ||
+    url.startsWith('/api/health')
+  ) return;
+  try {
+    await request.jwtVerify();
+    const u = await db.prepare('SELECT role FROM users WHERE id = ?').get(request.user.sub);
+    if (u && u.role === 'admin') return;
+  } catch { /* not authenticated */ }
+  if (url.startsWith('/api') || url.startsWith('/ws')) {
+    return reply.code(503).send({ error: 'maintenance' });
+  }
+  return reply.code(503).type('text/html; charset=utf-8').send(maintenancePage());
+});
 
 await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(projectRoutes, { prefix: '/api/projects' });

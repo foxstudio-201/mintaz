@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { getSetting, setSetting, getSecretSetting, setSecretSetting } from '../services/settings.js';
 import { registrationAllowed } from './auth.js';
 import { checkUpdate, startUpdate, updateStatus, APP_VERSION } from '../services/updater.js';
+import { isMaintenance, maintenanceInfo, setMaintenance } from '../services/maintenance.js';
 import { verifyToken, listZones } from '../services/cloudflare.js';
 import { hashPassword } from '../util/crypto.js';
 import { exec } from 'node:child_process';
@@ -97,6 +98,18 @@ export default async function adminRoutes(fastify) {
   fastify.get('/update/status', async (request, reply) => {
     if (!(await requireAdmin(request, reply))) return;
     return updateStatus();
+  });
+
+  fastify.get('/maintenance', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    return { on: isMaintenance(), info: maintenanceInfo() };
+  });
+
+  fastify.post('/maintenance', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    const on = Boolean(request.body?.on);
+    setMaintenance(on, 'manual');
+    return { on: isMaintenance() };
   });
 
   fastify.get('/traffic', async (request, reply) => {
