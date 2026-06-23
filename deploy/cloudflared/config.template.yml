@@ -1,0 +1,22 @@
+# Mintaz Deploy — cloudflared tunnel config
+# Installed to /etc/cloudflared/config.yml by setup.sh.
+#
+# The tunnel forwards hostnames to the local Mintaz Caddy on __PROXY_HTTP_PORT__
+# (kept off :80 so it won't clash with any existing web server). Caddy then does
+# Host-based routing to the dashboard and to each deployed container.
+
+tunnel: __TUNNEL_NAME__
+credentials-file: /etc/cloudflared/__TUNNEL_ID__.json
+
+ingress:
+  # Dashboard
+  - hostname: __DASH_DOMAIN__
+    service: http://localhost:__PROXY_HTTP_PORT__
+  # Wildcard — every deployed app + preview
+  - hostname: "*.__BASE_DOMAIN__"
+    service: http://localhost:__PROXY_HTTP_PORT__
+  # Base domain
+  - hostname: __BASE_DOMAIN__
+    service: http://localhost:__PROXY_HTTP_PORT__
+  # Required catch-all
+  - service: http_status:404

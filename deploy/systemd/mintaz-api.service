@@ -1,0 +1,24 @@
+[Unit]
+Description=Mintaz Deploy — API + deployment engine
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+# __INSTALL_DIR__ and __USER__ are substituted by setup.sh
+User=__USER__
+Group=__USER__
+WorkingDirectory=__INSTALL_DIR__/backend
+EnvironmentFile=__INSTALL_DIR__/backend/.env
+ExecStart=/usr/bin/env node src/server.js
+Restart=always
+RestartSec=3
+# Allow the service to manage docker + reload the proxy.
+SupplementaryGroups=docker
+# Logs go to journald: `journalctl -u mintaz-api -f`
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mintaz-api
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+{
+  "name": "mintaz-deploy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted PaaS — a simplified Vercel + Coolify",
+  "license": "MIT",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "build:web": "npm --prefix frontend run build",
+    "db:init": "npm --prefix backend run db:init",
+    "start": "npm --prefix backend run start",
+    "dev:api": "npm --prefix backend run dev",
+    "dev:web": "npm --prefix frontend run dev"
+  }
+}
