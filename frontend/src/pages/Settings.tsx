@@ -7,6 +7,7 @@ import { GithubConnect } from '../components/GithubConnect';
 import { GithubOAuthSetup } from '../components/GithubOAuthSetup';
 import { CloudflareConnect } from '../components/CloudflareConnect';
 import { DefaultDomainSetup } from '../components/DefaultDomainSetup';
+import { UpdatesCard } from '../components/UpdatesCard';
 import { IconStatusOnline, IconStatusOffline, IconArrowRight } from '../components/icons';
 
 export function Settings() {
@@ -55,6 +56,13 @@ export function Settings() {
         <div className="card mb-4 space-y-3 p-5">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('settings.defaultDomain')} <span className="text-xs font-normal text-slate-500">{t('settings.adminOnly')}</span></h2>
           <DefaultDomainSetup />
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="card mb-4 space-y-3 p-5">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('settings.updates.title')} <span className="text-xs font-normal text-slate-500">{t('settings.adminOnly')}</span></h2>
+          <UpdatesCard />
         </div>
       )}
 

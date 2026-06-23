@@ -142,6 +142,21 @@
     "defaultDomain": "Tên miền mặc định",
     "adminOnly": "(chỉ quản trị viên)",
     "system": "Hệ thống",
+    "updates": {
+      "title": "Cập nhật",
+      "current": "Phiên bản hiện tại",
+      "check": "Kiểm tra cập nhật",
+      "upToDate": "Bạn đang dùng phiên bản mới nhất.",
+      "available": "Có bản cập nhật — {{count}} commit mới.",
+      "updateNow": "Cập nhật ngay",
+      "confirm": "Cập nhật Mintaz lên phiên bản mới nhất? Hệ thống sẽ kéo mã mới, build lại và khởi động lại.",
+      "applied": "Đã cập nhật — đang khởi động lại.",
+      "failed": "Cập nhật thất bại. Xem log.",
+      "restartNote": "Đang cập nhật… dịch vụ sẽ tự khởi động lại khi xong.",
+      "restarting": "Dịch vụ đang khởi động lại…",
+      "starting": "Bắt đầu cập nhật…",
+      "checkError": "Không kiểm tra được: {{error}}"
+    },
     "row": {
       "dockerEngine": "Docker engine",
       "online": "trực tuyến",

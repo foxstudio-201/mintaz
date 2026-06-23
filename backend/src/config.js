@@ -92,6 +92,19 @@ export const config = {
   githubOAuthClientSecret: env.GITHUB_OAUTH_CLIENT_SECRET || '',
   publicUrl: env.PUBLIC_URL || '',
   cfTunnelName: env.CF_TUNNEL_NAME || 'mintaz-tunnel',
+
+  appVersion: (() => {
+    try {
+      return JSON.parse(readFileSync(join(backendRoot, '..', 'package.json'), 'utf8')).version || '0.0.0';
+    } catch {
+      return '0.0.0';
+    }
+  })(),
+  repo: {
+    owner: env.UPDATE_REPO_OWNER || 'foxstudio-201',
+    name: env.UPDATE_REPO_NAME || 'mintaz',
+    branch: env.UPDATE_BRANCH || 'main',
+  },
 };
 
 const INSECURE_DEFAULTS = {

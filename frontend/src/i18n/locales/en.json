@@ -142,6 +142,21 @@
     "defaultDomain": "Default domain",
     "adminOnly": "(admin only)",
     "system": "System",
+    "updates": {
+      "title": "Updates",
+      "current": "Current version",
+      "check": "Check for updates",
+      "upToDate": "You're on the latest version.",
+      "available": "Update available — {{count}} new commit(s).",
+      "updateNow": "Update now",
+      "confirm": "Update Mintaz to the latest version? The app will pull the latest code, rebuild, and restart.",
+      "applied": "Update applied — restarting.",
+      "failed": "Update failed. Check the log.",
+      "restartNote": "Updating… the service will restart automatically when done.",
+      "restarting": "Service restarting…",
+      "starting": "Starting update…",
+      "checkError": "Could not check: {{error}}"
+    },
     "row": {
       "dockerEngine": "Docker engine",
       "online": "online",

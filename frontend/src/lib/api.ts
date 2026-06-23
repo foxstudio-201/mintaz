@@ -186,6 +186,10 @@ export const api = {
   adminSystemHistory: () => req<{ history: SystemMetricPoint[] }>('/admin/system/history'),
   adminSettings: () => req<{ allow_registration: boolean }>('/admin/settings'),
   adminTraffic: () => req<AdminTraffic>('/admin/traffic'),
+  adminVersion: () => req<{ version: string }>('/admin/version'),
+  adminUpdateCheck: () => req<UpdateInfo>('/admin/update/check'),
+  adminUpdateApply: () => req<{ started: boolean }>('/admin/update/apply', { method: 'POST' }),
+  adminUpdateStatus: () => req<{ running: boolean; done: boolean; ok: boolean; log: string[]; startedAt: number }>('/admin/update/status'),
   adminSaveSettings: (body: { allow_registration: boolean }) =>
     req<{ ok: boolean; allow_registration: boolean }>('/admin/settings', { method: 'POST', body: JSON.stringify(body) }),
 
@@ -225,6 +229,20 @@ export type SystemMetrics = {
   uptime: number;
 };
 export type SystemMetricPoint = { t: number; cpu: number; ram: number; disk: number };
+
+export type UpdateInfo = {
+  version: string;
+  branch: string;
+  current: string | null;
+  latest?: string;
+  latestMessage?: string;
+  latestDate?: string | null;
+  updateAvailable?: boolean;
+  behind?: number;
+  commits?: { sha: string; message: string; date: string | null }[];
+  error?: string;
+  checkedAt?: number;
+};
 
 export type TrafficVisitor = { id: string; visits: number; last: number; country: string | null; city: string | null; device: string | null; browser: string | null };
 export type AdminTraffic = {

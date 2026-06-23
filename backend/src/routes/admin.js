@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { getSetting, setSetting, getSecretSetting, setSecretSetting } from '../services/settings.js';
 import { registrationAllowed } from './auth.js';
+import { checkUpdate, startUpdate, updateStatus, APP_VERSION } from '../services/updater.js';
 import { verifyToken, listZones } from '../services/cloudflare.js';
 import { hashPassword } from '../util/crypto.js';
 import { exec } from 'node:child_process';
@@ -76,6 +77,26 @@ export default async function adminRoutes(fastify) {
       await setSetting('allow_registration', String(b.allow_registration));
     }
     return { ok: true, allow_registration: await registrationAllowed() };
+  });
+
+  fastify.get('/version', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    return { version: APP_VERSION };
+  });
+
+  fastify.get('/update/check', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    return checkUpdate();
+  });
+
+  fastify.post('/update/apply', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    return { started: true, ...startUpdate() };
+  });
+
+  fastify.get('/update/status', async (request, reply) => {
+    if (!(await requireAdmin(request, reply))) return;
+    return updateStatus();
   });
 
   fastify.get('/traffic', async (request, reply) => {
