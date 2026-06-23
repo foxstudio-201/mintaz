@@ -1,4 +1,4 @@
-// Mintaz Deploy — API server entrypoint.
+// Mintaz — API server entrypoint.
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
@@ -97,7 +97,7 @@ if (config.staticDir && existsSync(config.staticDir)) {
   });
 } else {
   fastify.get('/', async () => ({
-    name: 'Mintaz Deploy API',
+    name: 'Mintaz API',
     status: 'ok',
     dashboard: 'frontend build not found — run `npm --prefix frontend run build`',
   }));
@@ -105,7 +105,7 @@ if (config.staticDir && existsSync(config.staticDir)) {
 
 try {
   await fastify.listen({ port: config.port, host: config.host });
-  fastify.log.info(`Mintaz Deploy API on http://${config.host}:${config.port}`);
+  fastify.log.info(`Mintaz API on http://${config.host}:${config.port}`);
   await resumeOnBoot();
   startMonitor();
   startUsageMonitor();

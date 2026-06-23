@@ -3,8 +3,8 @@
 ## 1. Automatic install (recommended)
 
 ```bash
-git clone https://github.com/youruser/mintaz-deploy.git
-cd mintaz-deploy
+git clone https://github.com/foxstudio-201/mintaz.git
+cd mintaz
 sudo ./setup.sh
 ```
 

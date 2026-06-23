@@ -2,7 +2,7 @@
 import { config, dashUrl } from '../config.js';
 import { getSetting, getSecretSetting } from './settings.js';
 
-const UA = 'Mintaz-Deploy';
+const UA = 'Mintaz';
 
 // OAuth App credentials & public URL — DB settings win over .env.
 export function clientId() {

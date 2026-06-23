@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Mintaz Deploy API + deployment engine",
+  "description": "Mintaz API + deployment engine",
   "license": "MIT",
   "main": "src/server.js",
   "scripts": {

@@ -65,7 +65,7 @@ export function startEdgeProxy() {
         up.on('end', () => {
           // Inject tracking script before </head>
           const trackerScript = `
-<meta name="mintaz-deployment" content="${t.deploymentId}" data-api-url="${dashUrl()}">
+<meta name="mintaz-id" content="${t.deploymentId}" data-api-url="${dashUrl()}">
 <script src="${dashUrl()}/public/tracker.js" defer></script>`;
 
           // Try to inject before </head>, fallback to before </body>, or append

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script để cài đặt Mintaz Deploy như một systemd service
+# Script để cài đặt Mintaz như một systemd service
 # Tự động chạy khi máy khởi động
 
 set -e
@@ -18,7 +18,7 @@ SERVICE_NAME="mintaz-api"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 TEMPLATE_FILE="${INSTALL_DIR}/deploy/systemd/mintaz-api.service"
 
-echo "🚀 Cài đặt Mintaz Deploy systemd service..."
+echo "🚀 Cài đặt Mintaz systemd service..."
 echo ""
 
 # Kiểm tra template có tồn tại không
@@ -79,7 +79,7 @@ fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "🎉 Hoàn tất! Mintaz Deploy sẽ tự động chạy khi máy khởi động."
+echo "🎉 Hoàn tất! Mintaz sẽ tự động chạy khi máy khởi động."
 echo ""
 echo "📋 Các lệnh hữu ích:"
 echo "   Xem logs:        journalctl -u $SERVICE_NAME -f"

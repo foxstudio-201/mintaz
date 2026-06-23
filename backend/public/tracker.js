@@ -7,7 +7,7 @@
   'use strict';
 
   // Get deployment ID from meta tag
-  const meta = document.querySelector('meta[name="mintaz-deployment"]');
+  const meta = document.querySelector('meta[name="mintaz-id"]');
   if (!meta) return;
 
   const deploymentId = meta.content;

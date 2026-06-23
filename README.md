@@ -1,4 +1,4 @@
-# Mintaz Deploy
+# Mintaz
 
 A self-hosted Platform-as-a-Service — a simplified **Vercel + Coolify** you run on a single
 Linux server. Push to Git, get a live container behind a wildcard domain, with preview
@@ -62,7 +62,7 @@ does host-based routing to per-container host ports. cloudflared brings traffic 
 ## Quick install
 
 ```bash
-git clone https://github.com/youruser/mintaz.git
+git clone https://github.com/foxstudio-201/mintaz.git
 cd mintaz
 sudo ./setup.sh
 ```

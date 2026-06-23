@@ -25,7 +25,7 @@ function liveRoutes() {
 
 function renderCaddy(routes) {
   const port = config.proxyHttpPort;
-  const header = `# Managed by Mintaz Deploy — do not edit by hand.\n# Imported from the main Caddyfile via: import ${config.caddySnippet}\n\n`;
+  const header = `# Managed by Mintaz — do not edit by hand.\n# Imported from the main Caddyfile via: import ${config.caddySnippet}\n\n`;
   // Bind on the configured HTTP port (the tunnel forwards *.domain here).
   const blocks = routes.map(
     (r) => `http://${r.subdomain}.${config.baseDomain}:${port} {
@@ -37,7 +37,7 @@ function renderCaddy(routes) {
 
 function renderNginx(routes) {
   const port = config.proxyHttpPort;
-  const header = `# Managed by Mintaz Deploy — do not edit by hand.\n\n`;
+  const header = `# Managed by Mintaz — do not edit by hand.\n\n`;
   const blocks = routes.map(
     (r) => `server {
     listen ${port};

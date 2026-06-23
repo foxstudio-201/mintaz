@@ -1,7 +1,7 @@
 // Cloudflare API helpers (token-based). Verify token, list zones, upsert the
 // DNS record that points a deployment hostname at the tunnel.
 const API = 'https://api.cloudflare.com/client/v4';
-const UA = 'Mintaz-Deploy';
+const UA = 'Mintaz';
 
 async function cf(token, path, { method = 'GET', body } = {}) {
   const res = await fetch(`${API}${path}`, {

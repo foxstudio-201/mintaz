@@ -1,4 +1,4 @@
-# Mintaz Deploy — cloudflared tunnel config
+# Mintaz — cloudflared tunnel config
 # Installed to /etc/cloudflared/config.yml by setup.sh.
 #
 # The tunnel forwards hostnames to the local Mintaz Caddy on __PROXY_HTTP_PORT__

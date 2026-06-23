@@ -1,5 +1,5 @@
 [Unit]
-Description=Mintaz Deploy — API + deployment engine
+Description=Mintaz — API + deployment engine
 After=network.target docker.service
 Wants=docker.service
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ════════════════════════════════════════════════════════════════════════════
-#  Mintaz Deploy — installer
+#  Mintaz — installer
 #  Installs Docker, Node.js, PM2, Caddy/Nginx and cloudflared, configures the
 #  platform interactively, and starts everything as a systemd service.
 #
@@ -303,7 +303,7 @@ configure_tunnel() {
 }
 
 print_summary() {
-  echo; hr; echo -e "${c_grn}${c_bold}  Mintaz Deploy is installed.${c_reset}"; hr
+  echo; hr; echo -e "${c_grn}${c_bold}  Mintaz is installed.${c_reset}"; hr
   echo -e "  Dashboard : ${c_cyn}https://${DASH_DOMAIN}${c_reset}"
   echo -e "  Local API : ${c_cyn}http://localhost:${API_PORT}${c_reset}"
   echo -e "  Admin     : ${c_cyn}${ADMIN_EMAIL}${c_reset}"

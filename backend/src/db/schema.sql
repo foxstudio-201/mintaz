@@ -1,4 +1,4 @@
--- Mintaz Deploy — SQLite schema
+-- Mintaz — SQLite schema
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
