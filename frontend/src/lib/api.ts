@@ -185,6 +185,7 @@ export const api = {
   adminSystem: () => req<SystemMetrics>('/admin/system'),
   adminSystemHistory: () => req<{ history: SystemMetricPoint[] }>('/admin/system/history'),
   adminSettings: () => req<{ allow_registration: boolean }>('/admin/settings'),
+  adminTraffic: () => req<AdminTraffic>('/admin/traffic'),
   adminSaveSettings: (body: { allow_registration: boolean }) =>
     req<{ ok: boolean; allow_registration: boolean }>('/admin/settings', { method: 'POST', body: JSON.stringify(body) }),
 
@@ -223,6 +224,20 @@ export type SystemMetrics = {
   uptime: number;
 };
 export type SystemMetricPoint = { t: number; cpu: number; ram: number; disk: number };
+
+export type TrafficVisitor = { id: string; visits: number; last: number; country: string | null; city: string | null; device: string | null; browser: string | null };
+export type AdminTraffic = {
+  totalVisits: number;
+  uniqueVisitors: number;
+  visits24h: number;
+  visitors24h: number;
+  visits7d: number;
+  countries: { country: string; visits: number; visitors: number }[];
+  devices: { device: string; visits: number }[];
+  pages: { path: string; visits: number }[];
+  visitors: TrafficVisitor[];
+  series: { day: number; visits: number; visitors: number }[];
+};
 
 export type QuotaMetric = { used: number; soft: number; limit: number };
 export type QuotaUsage = {

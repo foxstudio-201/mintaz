@@ -40,7 +40,8 @@
     "admin": "Admin",
     "signOut": "Sign out",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "github": "View on GitHub"
   },
   "legal": {
     "terms": "Terms of Service",
@@ -484,6 +485,26 @@
       "cpuChart": "CPU Usage (%)",
       "memoryChart": "Memory Usage (%)",
       "diskChart": "Disk Usage (%)"
+    },
+    "traffic": {
+      "title": "Website traffic",
+      "subtitle": "Visits to the dashboard by IP — auto-detected, privacy-friendly",
+      "totalVisits": "Total visits",
+      "uniqueVisitors": "Unique visitors",
+      "visits24h": "Visits (24h)",
+      "visitors24h": "Visitors (24h)",
+      "last14d": "Last 14 days",
+      "topCountries": "Top countries",
+      "devices": "Devices",
+      "topPages": "Top pages",
+      "recentVisitors": "Recent visitors",
+      "visitor": "Visitor",
+      "location": "Location",
+      "device": "Device",
+      "visits": "Visits",
+      "lastSeen": "Last seen",
+      "noData": "No traffic recorded yet. Visits are counted once a visitor accepts cookies.",
+      "unknown": "Unknown"
     },
     "accounts": {
       "count": "{{count}} accounts",

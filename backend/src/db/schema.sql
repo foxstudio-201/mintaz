@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS dashboard_views (
   timestamp     INTEGER NOT NULL,
   path          TEXT NOT NULL,
   visitor_hash  TEXT,
+  ip_hash       TEXT,
   referrer      TEXT,
   country       TEXT,
   region        TEXT,

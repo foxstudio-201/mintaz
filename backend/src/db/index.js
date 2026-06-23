@@ -33,6 +33,9 @@ function ensureColumns() {
     page_views: [
       ['language', 'TEXT'],
     ],
+    dashboard_views: [
+      ['ip_hash', 'TEXT'],
+    ],
     projects: [
       ["framework", "TEXT NOT NULL DEFAULT 'auto'"],
       ['output_dir', 'TEXT'],

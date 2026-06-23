@@ -40,7 +40,8 @@
     "admin": "Quản trị",
     "signOut": "Đăng xuất",
     "openMenu": "Mở menu",
-    "closeMenu": "Đóng menu"
+    "closeMenu": "Đóng menu",
+    "github": "Xem trên GitHub"
   },
   "legal": {
     "terms": "Điều khoản dịch vụ",
@@ -484,6 +485,26 @@
       "cpuChart": "Mức dùng CPU (%)",
       "memoryChart": "Mức dùng bộ nhớ (%)",
       "diskChart": "Mức dùng ổ đĩa (%)"
+    },
+    "traffic": {
+      "title": "Lưu lượng truy cập",
+      "subtitle": "Lượt truy cập dashboard theo IP — tự động nhận diện, tôn trọng quyền riêng tư",
+      "totalVisits": "Tổng lượt truy cập",
+      "uniqueVisitors": "Khách duy nhất",
+      "visits24h": "Lượt (24h)",
+      "visitors24h": "Khách (24h)",
+      "last14d": "14 ngày gần đây",
+      "topCountries": "Quốc gia hàng đầu",
+      "devices": "Thiết bị",
+      "topPages": "Trang xem nhiều",
+      "recentVisitors": "Khách gần đây",
+      "visitor": "Khách",
+      "location": "Vị trí",
+      "device": "Thiết bị",
+      "visits": "Lượt",
+      "lastSeen": "Lần cuối",
+      "noData": "Chưa có dữ liệu. Lượt truy cập được tính khi khách đồng ý cookie.",
+      "unknown": "Không rõ"
     },
     "accounts": {
       "count": "{{count}} tài khoản",

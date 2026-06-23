@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../store/auth';
 import { useTheme } from '../store/theme';
 import { LANGUAGES, setLanguage, type Lang } from '../i18n';
-import { IconProjects, IconPlusCircle, IconGear, IconShield, IconSun, IconMoon, MintazLogo, IconChart, IconMenu, IconX } from './icons';
+import { IconProjects, IconPlusCircle, IconGear, IconShield, IconSun, IconMoon, MintazLogo, IconChart, IconMenu, IconX, IconGithub } from './icons';
 import { FLAGS } from './icons/Flags';
 import { Avatar } from './Avatar';
+
+export const GITHUB_URL = 'https://github.com/foxstudio-201/mintaz';
 
 const nav = [
   { to: '/', labelKey: 'nav.projects', icon: IconProjects, end: true },
@@ -185,6 +187,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         >
           {t('nav.signOut')}
         </button>
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-ghost w-full justify-center gap-2 text-sm"
+          title={t('nav.github')}
+        >
+          <IconGithub className="w-4 h-4" /> {t('nav.github')}
+        </a>
         <p className="px-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
           <Link to="/terms" onClick={onNavigate} className="hover:text-slate-600 dark:hover:text-slate-300">{t('legal.terms')}</Link>
           {' · '}

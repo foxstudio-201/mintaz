@@ -9,6 +9,7 @@
 Push to Git → get a live container behind a wildcard domain, with per-branch / per-PR
 previews, live build & runtime logs, and automatic reverse-proxy routing.
 
+[![GitHub](https://img.shields.io/badge/GitHub-foxstudio--201%2Fmintaz-181717?logo=github&logoColor=white)](https://github.com/foxstudio-201/mintaz)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-required-2496ED?logo=docker&logoColor=white)

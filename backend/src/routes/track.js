@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { hashIP } from '../util/crypto.js';
 import { parseUserAgent, isBot } from '../services/useragent.js';
 import { getGeoFromIP } from '../services/geoip.js';
+import { getClientIp } from '../util/clientip.js';
 
 export default async function trackRoutes(fastify) {
   fastify.post('/track', async (request, reply) => {
@@ -29,9 +30,10 @@ export default async function trackRoutes(fastify) {
 
     const ua = parseUserAgent(user_agent);
 
-    const geo = getGeoFromIP(request.ip);
+    const ip = getClientIp(request);
+    const geo = getGeoFromIP(ip);
 
-    const ip_hash = hashIP(request.ip);
+    const ip_hash = hashIP(ip);
 
     const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {
@@ -80,18 +82,21 @@ export default async function trackRoutes(fastify) {
     if (isBot(user_agent)) return { ok: true, filtered: 'bot' };
 
     const ua = parseUserAgent(user_agent);
-    const geo = getGeoFromIP(request.ip);
+    const ip = getClientIp(request);
+    const geo = getGeoFromIP(ip);
     const visitor_hash = visitor ? hashIP(String(visitor)) : null;
+    const ip_hash = hashIP(ip);
 
     db.prepare(`
       INSERT INTO dashboard_views (
-        timestamp, path, visitor_hash, referrer, country, region, city,
+        timestamp, path, visitor_hash, ip_hash, referrer, country, region, city,
         device_type, browser, os, language
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       Date.now(),
       String(path).slice(0, 512),
       visitor_hash,
+      ip_hash,
       referrer || null,
       geo.country,
       geo.region,
@@ -116,7 +121,7 @@ export default async function trackRoutes(fastify) {
       return reply.code(400).send({ error: 'deployment_id and event_name required' });
     }
 
-    const ip_hash = hashIP(request.ip);
+    const ip_hash = hashIP(getClientIp(request));
 
     const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {

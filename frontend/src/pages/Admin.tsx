@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { api, type AdminUser, type SystemMetrics, type SystemMetricPoint } from '../lib/api';
+import { api, type AdminUser, type SystemMetrics, type AdminTraffic } from '../lib/api';
 import { toast } from '../store/toast';
-import { Spinner } from '../components/ui';
+import { Spinner, timeAgo } from '../components/ui';
 import {
-  IconCpu, IconMemory, IconStorage, IconServer, IconContainer,
+  IconServer, IconContainer,
   IconActivity, IconRefresh, IconX, IconKey, IconShield,
 } from '../components/icons';
 
@@ -54,36 +54,32 @@ export function Admin() {
 }
 
 
-const CHART_WINDOW = 60;
+function flagEmoji(code: string | null) {
+  if (!code || code.length !== 2 || code === '??') return '🌐';
+  const cc = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '🌐';
+  return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+const BAR_COLORS = ['bg-brand-500', 'bg-emerald-500', 'bg-amber-500', 'bg-sky-500', 'bg-purple-500', 'bg-pink-500', 'bg-cyan-500', 'bg-orange-500'];
 
 function SystemTab() {
   const { t } = useTranslation();
+  const [data, setData] = useState<AdminTraffic | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [history, setHistory] = useState<SystemMetricPoint[]>([]);
 
   useEffect(() => {
     let alive = true;
-    const loadMetrics = () =>
-      api.adminSystem().then((s) => { if (alive) setMetrics(s); }).catch(() => {});
-    const loadHistory = () =>
-      api.adminSystemHistory().then(({ history }) => { if (alive) setHistory(history); }).catch(() => {});
-
+    const loadTraffic = () => api.adminTraffic().then((d) => { if (alive) setData(d); }).catch(() => {});
+    const loadMetrics = () => api.adminSystem().then((s) => { if (alive) setMetrics(s); }).catch(() => {});
+    loadTraffic();
     loadMetrics();
-    loadHistory();
-    const mt = setInterval(loadMetrics, 10000);
-    const ht = setInterval(loadHistory, 60000);
-    return () => { alive = false; clearInterval(mt); clearInterval(ht); };
+    const a = setInterval(loadTraffic, 15000);
+    const b = setInterval(loadMetrics, 30000);
+    return () => { alive = false; clearInterval(a); clearInterval(b); };
   }, []);
 
-  if (!metrics) return <div className="flex justify-center p-12"><Spinner className="h-6 w-6" /></div>;
-
-  const recent = history.slice(-CHART_WINDOW);
-
-  const fmtBytes = (n: number) => {
-    if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
-    if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(0)} MB`;
-    return `${(n / 1024).toFixed(0)} KB`;
-  };
+  if (!data) return <div className="flex justify-center p-12"><Spinner className="h-6 w-6" /></div>;
 
   const fmtUptime = (s: number) => {
     const d = Math.floor(s / 86400);
@@ -92,45 +88,133 @@ function SystemTab() {
     return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
+  const empty = data.totalVisits === 0;
+
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <GaugeCard icon={<IconCpu className="w-5 h-5" />} label={t('admin.system.cpu')} percent={metrics.cpu.percent}
-          detail={t('admin.system.cpuDetail', { cores: metrics.cpu.cores, load: metrics.cpu.loadAvg.join(', ') })} />
-        <GaugeCard icon={<IconMemory className="w-5 h-5" />} label={t('admin.system.memory')} percent={metrics.memory.percent}
-          detail={`${fmtBytes(metrics.memory.used)} / ${fmtBytes(metrics.memory.total)}`} />
-        <GaugeCard icon={<IconStorage className="w-5 h-5" />} label={t('admin.system.disk')} percent={metrics.disk.percent}
-          detail={`${fmtBytes(metrics.disk.used)} / ${fmtBytes(metrics.disk.total)}`} />
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('admin.traffic.title')}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{t('admin.traffic.subtitle')}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <MiniStat icon={<IconContainer className="w-4 h-4" />} label={t('admin.system.containers')} value={`${metrics.docker.running} / ${metrics.docker.total}`} sub={t('admin.system.runningTotal')} />
-        <MiniStat icon={<IconServer className="w-4 h-4" />} label={t('admin.system.deployments')} value={String(metrics.platform.running)} sub={t('admin.system.currentlyRunning')} />
-        <MiniStat icon={<IconActivity className="w-4 h-4" />} label={t('admin.system.projects')} value={String(metrics.platform.projects)} sub={t('admin.system.totalDeploys', { count: metrics.platform.deployments })} />
-        <MiniStat icon={<IconRefresh className="w-4 h-4" />} label={t('admin.system.uptime')} value={fmtUptime(metrics.uptime)} sub={t('admin.system.server')} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label={t('admin.traffic.totalVisits')} value={data.totalVisits} accent="from-brand-500/20 to-brand-500/5" ring="text-brand-500" />
+        <Kpi label={t('admin.traffic.uniqueVisitors')} value={data.uniqueVisitors} accent="from-emerald-500/20 to-emerald-500/5" ring="text-emerald-500" />
+        <Kpi label={t('admin.traffic.visits24h')} value={data.visits24h} accent="from-amber-500/20 to-amber-500/5" ring="text-amber-500" />
+        <Kpi label={t('admin.traffic.visitors24h')} value={data.visitors24h} accent="from-sky-500/20 to-sky-500/5" ring="text-sky-500" />
       </div>
 
-      {recent.length > 2 && (
-        <div className="grid gap-4 sm:grid-cols-1">
-          <LineChart title={t('admin.system.cpuChart')} data={recent.map((h) => ({ t: h.t, v: h.cpu }))} color="#5b73ff" />
-          <LineChart title={t('admin.system.memoryChart')} data={recent.map((h) => ({ t: h.t, v: h.ram }))} color="#f59e0b" />
-          <LineChart title={t('admin.system.diskChart')} data={recent.map((h) => ({ t: h.t, v: h.disk }))} color="#10b981" />
+      {data.series.length > 1 && <TrafficChart series={data.series} label={t('admin.traffic.last14d')} />}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BarList title={t('admin.traffic.topCountries')} rows={data.countries.map((c) => ({ label: `${flagEmoji(c.country)} ${c.country || t('admin.traffic.unknown')}`, value: c.visits }))} />
+        <BarList title={t('admin.traffic.devices')} rows={data.devices.map((d) => ({ label: d.device, value: d.visits }))} />
+        <BarList title={t('admin.traffic.topPages')} rows={data.pages.map((p) => ({ label: p.path, value: p.visits }))} mono />
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="border-b border-black/[0.06] px-4 py-3 text-sm font-semibold text-slate-800 dark:border-white/[0.06] dark:text-slate-100">
+          {t('admin.traffic.recentVisitors')}
+        </div>
+        {empty ? (
+          <div className="p-8 text-center text-sm text-slate-500">{t('admin.traffic.noData')}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] gap-3 border-b border-black/[0.06] px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-white/[0.06]">
+                <span>{t('admin.traffic.visitor')}</span>
+                <span>{t('admin.traffic.location')}</span>
+                <span>{t('admin.traffic.device')}</span>
+                <span className="text-right">{t('admin.traffic.visits')}</span>
+                <span className="text-right">{t('admin.traffic.lastSeen')}</span>
+              </div>
+              {data.visitors.map((v, i) => (
+                <div key={v.id + i} className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] items-center gap-3 border-b border-black/[0.04] px-4 py-2.5 text-sm last:border-0 dark:border-white/[0.03]">
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/15 text-[10px] font-bold text-brand-500">{(v.id || '?')[0].toUpperCase()}</span>
+                    <span className="font-mono text-xs text-slate-500">{v.id}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                    <span>{flagEmoji(v.country)}</span>
+                    <span className="truncate">{[v.city, v.country].filter(Boolean).join(', ') || t('admin.traffic.unknown')}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs">
+                    <span className="rounded-md bg-black/[0.05] px-1.5 py-0.5 capitalize text-slate-600 dark:bg-white/[0.06] dark:text-slate-300">{v.device || '—'}</span>
+                    <span className="truncate text-slate-500">{v.browser || ''}</span>
+                  </span>
+                  <span className="text-right font-semibold text-slate-800 dark:text-slate-100">{v.visits}</span>
+                  <span className="text-right text-xs text-slate-500">{timeAgo(v.last)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {metrics && (
+        <div className="grid gap-4 sm:grid-cols-4">
+          <MiniStat icon={<IconContainer className="w-4 h-4" />} label={t('admin.system.containers')} value={`${metrics.docker.running} / ${metrics.docker.total}`} sub={t('admin.system.runningTotal')} />
+          <MiniStat icon={<IconServer className="w-4 h-4" />} label={t('admin.system.deployments')} value={String(metrics.platform.running)} sub={t('admin.system.currentlyRunning')} />
+          <MiniStat icon={<IconActivity className="w-4 h-4" />} label={t('admin.system.projects')} value={String(metrics.platform.projects)} sub={t('admin.system.totalDeploys', { count: metrics.platform.deployments })} />
+          <MiniStat icon={<IconRefresh className="w-4 h-4" />} label={t('admin.system.uptime')} value={fmtUptime(metrics.uptime)} sub={t('admin.system.server')} />
         </div>
       )}
     </div>
   );
 }
 
-function GaugeCard({ icon, label, percent, detail }: { icon: React.ReactNode; label: string; percent: number; detail: string }) {
-  const color = percent >= 90 ? 'text-red-400' : percent >= 70 ? 'text-amber-400' : 'text-brand-400';
-  const barColor = percent >= 90 ? 'bg-red-500' : percent >= 70 ? 'bg-amber-500' : 'bg-brand-500';
+function Kpi({ label, value, accent, ring }: { label: string; value: number; accent: string; ring: string }) {
   return (
-    <div className="card p-5">
-      <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">{icon} <span className="uppercase tracking-wide">{label}</span></div>
-      <div className={`text-3xl font-bold ${color}`}>{percent}%</div>
-      <div className="mt-1 text-xs text-slate-500">{detail}</div>
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/[0.04] dark:bg-white/5">
-        <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${percent}%` }} />
+    <div className={`card relative overflow-hidden bg-gradient-to-br p-4 ${accent}`}>
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</div>
+      <div className={`mt-1 text-3xl font-bold ${ring}`}>{value.toLocaleString()}</div>
+    </div>
+  );
+}
+
+function BarList({ title, rows, mono }: { title: string; rows: { label: string; value: number }[]; mono?: boolean }) {
+  const max = Math.max(...rows.map((r) => r.value), 1);
+  return (
+    <div className="card p-4">
+      <div className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</div>
+      {rows.length === 0 ? (
+        <div className="py-4 text-center text-xs text-slate-500">—</div>
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((r, i) => (
+            <div key={i}>
+              <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                <span className={`truncate text-slate-600 dark:text-slate-300 ${mono ? 'font-mono' : ''}`}>{r.label}</span>
+                <span className="shrink-0 font-semibold text-slate-700 dark:text-slate-200">{r.value}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/10">
+                <div className={`h-full rounded-full ${BAR_COLORS[i % BAR_COLORS.length]}`} style={{ width: `${(r.value / max) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TrafficChart({ series, label }: { series: { day: number; visits: number; visitors: number }[]; label: string }) {
+  const max = Math.max(...series.map((s) => s.visits), 1);
+  return (
+    <div className="card p-4">
+      <div className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</div>
+      <div className="flex items-end gap-1.5" style={{ height: 120 }}>
+        {series.map((s, i) => (
+          <div key={i} className="group relative flex flex-1 flex-col items-center justify-end">
+            <div
+              className="w-full rounded-t bg-gradient-to-t from-brand-500/40 to-brand-500 transition-all hover:from-brand-500 hover:to-brand-400"
+              style={{ height: `${Math.max((s.visits / max) * 100, 3)}%` }}
+            />
+            <div className="pointer-events-none absolute -top-7 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block dark:bg-slate-700">
+              {s.visits} · {new Date(s.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -142,47 +226,6 @@ function MiniStat({ icon, label, value, sub }: { icon: React.ReactNode; label: s
       <div className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">{icon} {label}</div>
       <div className="text-lg font-semibold text-slate-800 dark:text-slate-100">{value}</div>
       <div className="text-[10px] text-slate-500">{sub}</div>
-    </div>
-  );
-}
-
-function LineChart({ title, data, color }: { title: string; data: { t: number; v: number }[]; color: string }) {
-  const W = 600, H = 120, PAD = 4;
-  const max = Math.max(...data.map((d) => d.v), 1);
-  const min = Math.min(...data.map((d) => d.v), 0);
-  const range = max - min || 1;
-
-  const points = data.map((d, i) => {
-    const x = PAD + (i / (data.length - 1)) * (W - PAD * 2);
-    const y = PAD + (1 - (d.v - min) / range) * (H - PAD * 2);
-    return `${x},${y}`;
-  });
-
-  const areaPoints = [
-    `${PAD},${H - PAD}`,
-    ...points,
-    `${W - PAD},${H - PAD}`,
-  ].join(' ');
-
-  const last = data[data.length - 1];
-
-  return (
-    <div className="card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{title}</span>
-        <span className="text-xs font-medium" style={{ color }}>{last.v}%</span>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 120 }}>
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={PAD} x2={W - PAD} y1={PAD + f * (H - PAD * 2)} y2={PAD + f * (H - PAD * 2)}
-            stroke="currentColor" strokeOpacity={0.06} strokeWidth={1} />
-        ))}
-        <polygon points={areaPoints} fill={color} fillOpacity={0.1} />
-        <polyline points={points.join(' ')} fill="none" stroke={color} strokeWidth={2}
-          strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={points[points.length - 1]?.split(',')[0]} cy={points[points.length - 1]?.split(',')[1]}
-          r={3} fill={color} />
-      </svg>
     </div>
   );
 }

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../store/auth';
 import { toast } from '../store/toast';
 import { Spinner } from '../components/ui';
-import { MintazLogo } from '../components/icons';
+import { MintazLogo, IconGithub } from '../components/icons';
+import { GITHUB_URL } from '../components/Layout';
 
 export function Login() {
   const { t } = useTranslation();
@@ -64,6 +65,15 @@ export function Login() {
             {t('auth.createOne')}
           </Link>
         </p>
+
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <IconGithub className="h-4 w-4" /> {t('nav.github')}
+        </a>
 
         <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
           <Link to="/terms" className="hover:text-slate-600 dark:hover:text-slate-300">{t('legal.terms')}</Link>

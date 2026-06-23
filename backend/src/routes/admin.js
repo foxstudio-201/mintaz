@@ -78,6 +78,48 @@ export default async function adminRoutes(fastify) {
     return { ok: true, allow_registration: registrationAllowed() };
   });
 
+  fastify.get('/traffic', async (request, reply) => {
+    if (!requireAdmin(request, reply)) return;
+    const now = Date.now();
+    const DAY = 86400000;
+    const VKEY = "COALESCE(ip_hash, visitor_hash)";
+    const one = (sql, ...a) => db.prepare(sql).get(...a);
+
+    const totalVisits = one('SELECT COUNT(*) c FROM dashboard_views').c;
+    const uniqueVisitors = one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE ${VKEY} IS NOT NULL`).c;
+    const visits24h = one('SELECT COUNT(*) c FROM dashboard_views WHERE timestamp >= ?', now - DAY).c;
+    const visitors24h = one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE timestamp >= ? AND ${VKEY} IS NOT NULL`, now - DAY).c;
+    const visits7d = one('SELECT COUNT(*) c FROM dashboard_views WHERE timestamp >= ?', now - 7 * DAY).c;
+
+    const countries = db.prepare(`
+      SELECT COALESCE(country, '??') country, COUNT(*) visits, COUNT(DISTINCT ${VKEY}) visitors
+      FROM dashboard_views GROUP BY country ORDER BY visits DESC LIMIT 12
+    `).all();
+
+    const devices = db.prepare(`
+      SELECT COALESCE(device_type, 'unknown') device, COUNT(*) visits
+      FROM dashboard_views GROUP BY device_type ORDER BY visits DESC
+    `).all();
+
+    const pages = db.prepare(`
+      SELECT path, COUNT(*) visits FROM dashboard_views GROUP BY path ORDER BY visits DESC LIMIT 8
+    `).all();
+
+    const visitors = db.prepare(`
+      SELECT ${VKEY} id, COUNT(*) visits, MAX(timestamp) last,
+             MAX(country) country, MAX(city) city, MAX(device_type) device, MAX(browser) browser
+      FROM dashboard_views WHERE ${VKEY} IS NOT NULL
+      GROUP BY ${VKEY} ORDER BY last DESC LIMIT 25
+    `).all().map((v) => ({ ...v, id: String(v.id || '').slice(0, 10) }));
+
+    const series = db.prepare(`
+      SELECT (timestamp / ?) bucket, COUNT(*) visits, COUNT(DISTINCT ${VKEY}) visitors
+      FROM dashboard_views WHERE timestamp >= ? GROUP BY bucket ORDER BY bucket
+    `).all(DAY, now - 14 * DAY).map((r) => ({ day: r.bucket * DAY, visits: r.visits, visitors: r.visitors }));
+
+    return { totalVisits, uniqueVisitors, visits24h, visitors24h, visits7d, countries, devices, pages, visitors, series };
+  });
+
 
   fastify.get('/users', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
