@@ -1,4 +1,3 @@
-// Environment variable editor per project.
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 
@@ -23,7 +22,6 @@ export default async function envRoutes(fastify) {
     return { env: rows };
   });
 
-  // Replace the full env set for a project (atomic).
   fastify.put('/:projectId', async (request, reply) => {
     const p = ownProject(request, reply);
     if (!p) return;

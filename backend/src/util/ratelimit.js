@@ -1,9 +1,5 @@
-// Tiny in-memory fixed-window rate limiter (per-process, no dependency).
-// Adequate for a single instance; use a shared store (Redis) if you run
-// multiple replicas behind a load balancer.
-const buckets = new Map(); // key -> { count, resetAt }
+const buckets = new Map();
 
-// Bound memory: drop expired buckets when the map grows large.
 function sweep(now) {
   if (buckets.size < 5000) return;
   for (const [k, b] of buckets) if (now >= b.resetAt) buckets.delete(k);
@@ -24,13 +20,12 @@ export function hitRateLimit(key, max, windowMs) {
   };
 }
 
-// Build a Fastify preHandler that limits by client IP.
 export function ipRateLimit({ max, windowMs, bucket = 'rl' }) {
   return function (request, reply, done) {
     const { allowed, retryAfter } = hitRateLimit(`${bucket}:${request.ip}`, max, windowMs);
     if (!allowed) {
       reply.header('Retry-After', retryAfter).code(429).send({ error: 'too many requests, try again later' });
-      return; // do not call done() — short-circuits the request
+      return;
     }
     done();
   };

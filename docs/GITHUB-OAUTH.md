@@ -1,4 +1,4 @@
-# Connect GitHub (OAuth) — import repos like Vercel
+# Connect GitHub (OAuth) — import repos in one click
 
 With a GitHub OAuth App configured, users click **Connect GitHub** in Settings,
 authorize once, and then **pick any repository** from a searchable list when

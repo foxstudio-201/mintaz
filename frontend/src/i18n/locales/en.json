@@ -42,6 +42,19 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
   },
+  "legal": {
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "lastUpdated": "Last updated: {{date}}",
+    "back": "Back"
+  },
+  "cookie": {
+    "title": "Cookies.",
+    "message": "We use essential storage to keep you signed in, and — only with your consent — a first-party analytics cookie to measure dashboard usage. No advertising or third-party tracking.",
+    "learnMore": "Learn more",
+    "accept": "Accept",
+    "reject": "Reject"
+  },
   "auth": {
     "appTagline": "Sign in to your control plane",
     "email": "Email",

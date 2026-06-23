@@ -3,9 +3,12 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './store/auth';
 import { Layout } from './components/Layout';
 import { Toaster } from './components/Toaster';
+import { CookieConsent } from './components/CookieConsent';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
 import { Spinner } from './components/ui';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Terms, Privacy } from './pages/Legal';
 import { Dashboard } from './pages/Dashboard';
 import { CreateProject } from './pages/CreateProject';
 import { ProjectDetail } from './pages/ProjectDetail';
@@ -39,6 +42,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user && ready ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/register" element={user && ready ? <Navigate to="/" replace /> : <Register />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route
           element={
             <RequireAuth>
@@ -56,7 +61,9 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <AnalyticsTracker />
       <Toaster />
+      <CookieConsent />
     </>
   );
 }

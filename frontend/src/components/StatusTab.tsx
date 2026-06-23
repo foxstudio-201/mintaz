@@ -39,7 +39,6 @@ export function StatusTab({ deployment }: { deployment: Deployment | null }) {
         <Stat label={t('status.checks')} value={summary?.total ?? 0} />
       </div>
 
-      {/* Sparkline-ish bar of recent checks */}
       {checks.length > 0 && (
         <div className="card p-4">
           <div className="mb-2 text-xs uppercase tracking-wide text-slate-500">{t('status.recentPings')}</div>

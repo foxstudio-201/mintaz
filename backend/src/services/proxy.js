@@ -1,5 +1,3 @@
-// Reverse-proxy config generator. Regenerates the whole route file from the set
-// of live containers in the DB and hot-reloads Caddy (or Nginx).
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { exec } from 'node:child_process';
@@ -10,7 +8,6 @@ import { config } from '../config.js';
 const pexec = promisify(exec);
 
 function liveRoutes() {
-  // One route per live container. Newest container wins per subdomain.
   return db
     .prepare(
       `SELECT subdomain, host_port
@@ -26,7 +23,6 @@ function liveRoutes() {
 function renderCaddy(routes) {
   const port = config.proxyHttpPort;
   const header = `# Managed by Mintaz — do not edit by hand.\n# Imported from the main Caddyfile via: import ${config.caddySnippet}\n\n`;
-  // Bind on the configured HTTP port (the tunnel forwards *.domain here).
   const blocks = routes.map(
     (r) => `http://${r.subdomain}.${config.baseDomain}:${port} {
 \treverse_proxy 127.0.0.1:${r.host_port}
@@ -60,7 +56,6 @@ function renderNginx(routes) {
 let pending = false;
 let running = false;
 
-// Regenerate the proxy config and reload. Coalesces concurrent calls.
 export async function syncProxy() {
   if (running) {
     pending = true;

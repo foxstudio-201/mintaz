@@ -1,4 +1,3 @@
-// Single quota metric card with progress bar.
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 

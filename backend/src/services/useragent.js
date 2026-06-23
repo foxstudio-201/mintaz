@@ -1,16 +1,7 @@
-/**
- * User Agent Parser
- * Parse browser, OS, and device info from user agent string
- */
 import { UAParser } from 'ua-parser-js';
 
 const parser = new UAParser();
 
-/**
- * Parse user agent string
- * @param {string} uaString - User agent string
- * @returns {Object} Parsed info: { device, browser, browserVersion, os, osVersion }
- */
 export function parseUserAgent(uaString) {
   if (!uaString) {
     return {
@@ -25,7 +16,6 @@ export function parseUserAgent(uaString) {
   parser.setUA(uaString);
   const result = parser.getResult();
 
-  // Determine device type
   let deviceType = 'desktop';
   if (result.device.type === 'mobile' || result.device.type === 'tablet') {
     deviceType = result.device.type;
@@ -40,11 +30,6 @@ export function parseUserAgent(uaString) {
   };
 }
 
-/**
- * Check if user agent is a bot
- * @param {string} uaString - User agent string
- * @returns {boolean}
- */
 export function isBot(uaString) {
   if (!uaString) return false;
   const ua = uaString.toLowerCase();

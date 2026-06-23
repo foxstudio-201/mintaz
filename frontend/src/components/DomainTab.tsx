@@ -5,8 +5,6 @@ import { toast } from '../store/toast';
 import { Spinner, StatusBadge } from './ui';
 import { IconExternalLink } from './icons';
 
-// Per-project domains: the auto-assigned default (*.platform) + an optional
-// custom domain via the user's own Cloudflare account.
 export function DomainTab({ project, onChange }: { project: Project; onChange: () => void }) {
   const { t } = useTranslation();
   const [cf, setCf] = useState<CfStatus | null>(null);
@@ -16,7 +14,7 @@ export function DomainTab({ project, onChange }: { project: Project; onChange: (
   const [busy, setBusy] = useState(false);
   const [reach, setReach] = useState<'checking' | 'up' | 'down' | null>(null);
 
-  const defaultUrl = project.production_url; // https://<slug>.<baseDomain>
+  const defaultUrl = project.production_url;
 
   const loadCf = () =>
     api.cfStatus().then((s) => {
@@ -27,7 +25,6 @@ export function DomainTab({ project, onChange }: { project: Project; onChange: (
     loadCf().catch(() => {});
   }, []);
 
-  // Auto-check whether the live URL responds.
   useEffect(() => {
     const target = project.cf_zone_name ? `https://${project.slug}.${project.cf_zone_name}` : defaultUrl;
     let alive = true;
@@ -35,7 +32,7 @@ export function DomainTab({ project, onChange }: { project: Project; onChange: (
       setReach('checking');
       try {
         await fetch(target, { mode: 'no-cors' });
-        if (alive) setReach('up'); // no-cors: opaque success means it resolved
+        if (alive) setReach('up');
       } catch {
         if (alive) setReach('down');
       }
@@ -94,7 +91,6 @@ export function DomainTab({ project, onChange }: { project: Project; onChange: (
 
   return (
     <div className="space-y-4">
-      {/* Default domain (always available) */}
       <div className="card p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('domain.defaultDomain')}</h3>
@@ -110,7 +106,6 @@ export function DomainTab({ project, onChange }: { project: Project; onChange: (
         </p>
       </div>
 
-      {/* Custom domain */}
       <div className="card p-5">
         <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{t('domain.customDomain')}</h3>
 

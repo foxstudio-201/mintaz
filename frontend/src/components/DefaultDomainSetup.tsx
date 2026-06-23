@@ -4,8 +4,6 @@ import { api, type AdminDefaults, type CfZone } from '../lib/api';
 import { toast } from '../store/toast';
 import { Spinner } from './ui';
 
-// Admin-only: the platform default domain (*.your-domain.com). Projects without
-// their own Cloudflare connection auto-get <slug>.<this-zone> on deploy.
 export function DefaultDomainSetup() {
   const { t } = useTranslation();
   const [cfg, setCfg] = useState<AdminDefaults | null>(null);

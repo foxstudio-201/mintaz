@@ -69,8 +69,6 @@ export function ProjectDetail() {
     return () => clearInterval(t);
   }, [load]);
 
-  // The deployment shown in Overview/Status/Files: newest running production,
-  // else newest production, else newest of anything.
   const prodDeployment =
     deployments.find((d) => d.type === 'production' && d.status === 'running') ||
     deployments.find((d) => d.type === 'production') ||
@@ -136,7 +134,6 @@ export function ProjectDetail() {
         </div>
       </header>
 
-      {/* Tabs */}
       <div className="mb-5 flex gap-1 overflow-x-auto border-b border-black/[0.06] dark:border-white/[0.06]">
         {TABS.map((tabItem) => {
           const Icon = tabItem.icon;

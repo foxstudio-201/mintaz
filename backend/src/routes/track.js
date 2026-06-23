@@ -1,16 +1,9 @@
-/**
- * Tracking endpoints - receive analytics events from deployed apps
- * Public API (no authentication required)
- */
 import { db } from '../db/index.js';
 import { hashIP } from '../util/crypto.js';
 import { parseUserAgent, isBot } from '../services/useragent.js';
 import { getGeoFromIP } from '../services/geoip.js';
 
 export default async function trackRoutes(fastify) {
-  /**
-   * POST /api/track - Track a page view
-   */
   fastify.post('/track', async (request, reply) => {
     const {
       deployment_id,
@@ -26,32 +19,25 @@ export default async function trackRoutes(fastify) {
       utm_campaign,
     } = request.body || {};
 
-    // Validate required fields
     if (!deployment_id || !path) {
       return reply.code(400).send({ error: 'deployment_id and path required' });
     }
 
-    // Filter out bots
     if (isBot(user_agent)) {
       return { ok: true, filtered: 'bot' };
     }
 
-    // Parse user agent
     const ua = parseUserAgent(user_agent);
 
-    // Get geo info from IP
     const geo = getGeoFromIP(request.ip);
 
-    // Hash IP for privacy
     const ip_hash = hashIP(request.ip);
 
-    // Lookup project_id from deployment_id
     const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {
       return reply.code(404).send({ error: 'deployment not found' });
     }
 
-    // Insert page view
     db.prepare(`
       INSERT INTO page_views (
         deployment_id, project_id, timestamp, path, referrer, hostname,
@@ -88,9 +74,36 @@ export default async function trackRoutes(fastify) {
     return { ok: true };
   });
 
-  /**
-   * POST /api/track/event - Track a custom event
-   */
+  fastify.post('/track/app', async (request, reply) => {
+    const { path, visitor, referrer, user_agent, language } = request.body || {};
+    if (!path) return reply.code(400).send({ error: 'path required' });
+    if (isBot(user_agent)) return { ok: true, filtered: 'bot' };
+
+    const ua = parseUserAgent(user_agent);
+    const geo = getGeoFromIP(request.ip);
+    const visitor_hash = visitor ? hashIP(String(visitor)) : null;
+
+    db.prepare(`
+      INSERT INTO dashboard_views (
+        timestamp, path, visitor_hash, referrer, country, region, city,
+        device_type, browser, os, language
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      Date.now(),
+      String(path).slice(0, 512),
+      visitor_hash,
+      referrer || null,
+      geo.country,
+      geo.region,
+      geo.city,
+      ua.device,
+      ua.browser,
+      ua.os,
+      language || null
+    );
+    return { ok: true };
+  });
+
   fastify.post('/track/event', async (request, reply) => {
     const {
       deployment_id,
@@ -99,21 +112,17 @@ export default async function trackRoutes(fastify) {
       path,
     } = request.body || {};
 
-    // Validate required fields
     if (!deployment_id || !event_name) {
       return reply.code(400).send({ error: 'deployment_id and event_name required' });
     }
 
-    // Hash IP for privacy
     const ip_hash = hashIP(request.ip);
 
-    // Lookup project_id from deployment_id
     const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {
       return reply.code(404).send({ error: 'deployment not found' });
     }
 
-    // Insert custom event
     db.prepare(`
       INSERT INTO custom_events (
         deployment_id, project_id, timestamp, event_name, event_data, path, ip_hash

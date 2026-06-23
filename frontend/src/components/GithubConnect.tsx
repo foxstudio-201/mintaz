@@ -58,7 +58,6 @@ export function GithubConnect({ onChange }: { onChange?: () => void }) {
 
   if (!status) return <div className="h-20 animate-pulse rounded-xl bg-black/[0.04] dark:bg-white/5" />;
 
-  // Connected — show the account.
   if (status.connected) {
     return (
       <div className="flex items-center justify-between gap-4">
@@ -76,7 +75,6 @@ export function GithubConnect({ onChange }: { onChange?: () => void }) {
     );
   }
 
-  // Not connected — offer OAuth (if configured) and/or the token method.
   return (
     <div className="space-y-4">
       {status.configured && (

@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# ════════════════════════════════════════════════════════════════════════════
-#  Mintaz — installer
-#  Installs Docker, Node.js, PM2, Caddy/Nginx and cloudflared, configures the
-#  platform interactively, and starts everything as a systemd service.
-#
-#  Usage:   sudo ./setup.sh
-#  Re-run any time; it is safe to run again to reconfigure.
-# ════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-# ── Pretty output ────────────────────────────────────────────────────────────
 c_reset='\033[0m'; c_dim='\033[2m'; c_red='\033[31m'; c_grn='\033[32m'
 c_ylw='\033[33m'; c_blu='\033[34m'; c_cyn='\033[36m'; c_bold='\033[1m'
 log()  { echo -e "${c_cyn}▶${c_reset} $*"; }
@@ -28,19 +19,16 @@ banner() {
  | |  | | | | | | || (_| |/ /   
  |_|  |_|_|_| |_|\__\__,_/___|  
 EOF
-  echo -e "${c_reset}${c_dim}        Self-hosted PaaS — Vercel + Coolify on your own box${c_reset}\n"
+  echo -e "${c_reset}${c_dim}        Self-hosted PaaS — Git-driven deployments on your own box${c_reset}\n"
 }
 
-# ── Pre-flight ───────────────────────────────────────────────────────────────
 [ "$(id -u)" -eq 0 ] || die "Please run as root:  sudo ./setup.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$SCRIPT_DIR"
 
-# The non-root user that will own the install + run the service.
 RUN_USER="${SUDO_USER:-root}"
 [ "$RUN_USER" = "root" ] && warn "Running service as root (no SUDO_USER detected)."
 
-# ── OS detection ─────────────────────────────────────────────────────────────
 PKG=""; OS_NAME=""
 detect_os() {
   if [ -f /etc/os-release ]; then . /etc/os-release; OS_NAME="$ID"; fi
@@ -68,7 +56,6 @@ pkg_install() {
   esac
 }
 
-# ── Dependency installers ────────────────────────────────────────────────────
 ensure_base() {
   log "Installing base utilities (curl, git, build tools)…"
   case "$PKG" in
@@ -151,7 +138,6 @@ ensure_cloudflared() {
   ok "cloudflared installed."
 }
 
-# ── Interactive wizard ───────────────────────────────────────────────────────
 ask()        { local p="$1" d="${2:-}" v; read -rp "$(echo -e "${c_blu}?${c_reset} $p ${c_dim}[${d}]${c_reset}: ")" v; echo "${v:-$d}"; }
 ask_secret() { local p="$1" v; read -rsp "$(echo -e "${c_blu}?${c_reset} $p: ")" v; echo >&2; echo "$v"; }
 ask_yn()     { local p="$1" d="${2:-y}" v; read -rp "$(echo -e "${c_blu}?${c_reset} $p ${c_dim}(y/n) [${d}]${c_reset}: ")" v; v="${v:-$d}"; [[ "$v" =~ ^[Yy] ]]; }
@@ -198,7 +184,6 @@ run_wizard() {
   ask_yn 'Proceed with these settings?' 'y' || die 'Aborted by user.'
 }
 
-# ── Generators ───────────────────────────────────────────────────────────────
 CADDY_SNIPPET="/etc/caddy/mintaz.routes.caddy"
 NGINX_SNIPPET="/etc/nginx/conf.d/mintaz.conf"
 
@@ -319,7 +304,6 @@ print_summary() {
   hr
 }
 
-# ── Main ─────────────────────────────────────────────────────────────────────
 main() {
   banner
   detect_os

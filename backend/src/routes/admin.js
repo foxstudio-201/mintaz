@@ -1,4 +1,3 @@
-// Admin-only: default domain, user management, system metrics.
 import { db } from '../db/index.js';
 import { getSetting, setSetting, getSecretSetting, setSecretSetting } from '../services/settings.js';
 import { registrationAllowed } from './auth.js';
@@ -22,7 +21,6 @@ function requireAdmin(request, reply) {
 export default async function adminRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
-  // Current default-domain config (token never returned).
   fastify.get('/defaults', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const zoneName = getSetting('default_zone_name');
@@ -37,7 +35,6 @@ export default async function adminRoutes(fastify) {
     };
   });
 
-  // List zones for the default token (or a token being entered) so admin can pick.
   fastify.post('/defaults/zones', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const token = String(request.body?.token || '').trim() || getSecretSetting('default_cf_token');
@@ -51,7 +48,6 @@ export default async function adminRoutes(fastify) {
     }
   });
 
-  // Save default-domain config. Empty token keeps the stored one.
   fastify.post('/defaults', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const b = request.body || {};
@@ -68,7 +64,6 @@ export default async function adminRoutes(fastify) {
     return { ok: true };
   });
 
-  // Platform settings (currently: public registration toggle).
   fastify.get('/settings', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     return { allow_registration: registrationAllowed() };
@@ -83,15 +78,12 @@ export default async function adminRoutes(fastify) {
     return { ok: true, allow_registration: registrationAllowed() };
   });
 
-  // ── User Management ──────────────────────────────────────────────
 
-  // GET /api/admin/users — list all accounts.
   fastify.get('/users', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const users = db.prepare(
       `SELECT id, email, role, created_at, github_login, github_avatar FROM users ORDER BY created_at DESC`
     ).all();
-    // Enrich with project/deployment counts.
     const enriched = users.map((u) => {
       const projectCount = db.prepare('SELECT COUNT(*) c FROM projects WHERE user_id = ?').get(u.id).c;
       const deployCount = db.prepare(
@@ -106,7 +98,6 @@ export default async function adminRoutes(fastify) {
     return { users: enriched };
   });
 
-  // POST /api/admin/users/:id/suspend — toggle suspend.
   fastify.post('/users/:id/suspend', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const { id } = request.params;
@@ -116,7 +107,6 @@ export default async function adminRoutes(fastify) {
     return { suspended: newVal === '1' };
   });
 
-  // POST /api/admin/users/:id/password — change user password.
   fastify.post('/users/:id/password', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const { id } = request.params;
@@ -126,7 +116,6 @@ export default async function adminRoutes(fastify) {
     return { ok: true };
   });
 
-  // DELETE /api/admin/users/:id — delete user and all their data.
   fastify.delete('/users/:id', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const { id } = request.params;
@@ -135,7 +124,6 @@ export default async function adminRoutes(fastify) {
     return { ok: true };
   });
 
-  // POST /api/admin/users/:id/role — change role.
   fastify.post('/users/:id/role', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const { id } = request.params;
@@ -145,25 +133,19 @@ export default async function adminRoutes(fastify) {
     return { ok: true };
   });
 
-  // ── System Metrics ───────────────────────────────────────────────
 
-  // GET /api/admin/system — real-time system metrics.
   fastify.get('/system', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
 
-    // CPU load
     const loadAvg = os.loadavg();
     const cpuCores = os.cpus().length;
     const cpuPercent = Math.round((loadAvg[0] / cpuCores) * 100);
 
-    // Memory
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const usedMem = totalMem - freeMem;
     const memPercent = Math.round((usedMem / totalMem) * 100);
 
-    // Disk + Docker — run as NON-blocking async commands (in parallel) so the
-    // event loop stays free while the admin page polls this endpoint.
     let diskTotal = 0, diskUsed = 0, diskPercent = 0;
     let dockerContainers = { running: 0, stopped: 0, total: 0 };
 
@@ -186,13 +168,11 @@ export default async function adminRoutes(fastify) {
       dockerContainers.stopped = dockerContainers.total - dockerContainers.running;
     }
 
-    // Platform stats
     const totalUsers = db.prepare('SELECT COUNT(*) c FROM users').get().c;
     const totalProjects = db.prepare('SELECT COUNT(*) c FROM projects').get().c;
     const totalDeployments = db.prepare('SELECT COUNT(*) c FROM deployments').get().c;
     const runningDeployments = db.prepare("SELECT COUNT(*) c FROM deployments WHERE status = 'running'").get().c;
 
-    // Uptime
     const uptime = Math.round(os.uptime());
 
     return {
@@ -205,7 +185,6 @@ export default async function adminRoutes(fastify) {
     };
   });
 
-  // GET /api/admin/system/history — stored metric snapshots for charts.
   fastify.get('/system/history', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const raw = getSetting('system_metrics_history');

@@ -1,11 +1,3 @@
-/**
- * Mintaz – Duotone SVG icon library.
- *
- * Every icon renders at `w-4 h-4` by default and accepts a Tailwind-compatible
- * `className` to override size / colour.  The "duotone" effect is achieved by
- * drawing a secondary layer at 25 % opacity behind the primary strokes so the
- * icons inherit whatever `color` the parent element provides.
- */
 
 type IconProps = { className?: string };
 
@@ -32,9 +24,6 @@ function Icon({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  MINTAZ LOGO                                                       */
-/* ------------------------------------------------------------------ */
 
 export function MintazLogo({ className = 'w-8 h-8' }: IconProps) {
   return (
@@ -44,13 +33,11 @@ export function MintazLogo({ className = 'w-8 h-8' }: IconProps) {
       fill="none"
       className={className}
     >
-      {/* Leaf body — duotone fill */}
       <path
         d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z"
         fill="#34d399"
         opacity={0.3}
       />
-      {/* Leaf outline */}
       <path
         d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z"
         stroke="#10b981"
@@ -58,14 +45,12 @@ export function MintazLogo({ className = 'w-8 h-8' }: IconProps) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Center vein */}
       <path
         d="M9 25C13 18 18 11 24 5"
         stroke="#10b981"
         strokeWidth={1.5}
         strokeLinecap="round"
       />
-      {/* Side veins */}
       <path
         d="M12 21c3-2 5.5-4.5 8-8M15 17c2-1.5 4-3.5 6-7"
         stroke="#10b981"
@@ -73,15 +58,11 @@ export function MintazLogo({ className = 'w-8 h-8' }: IconProps) {
         strokeLinecap="round"
         opacity={0.5}
       />
-      {/* Dewdrop accent */}
       <circle cx="21" cy="9" r="2" fill="#34d399" opacity={0.5} />
     </svg>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  TAB ICONS                                                         */
-/* ------------------------------------------------------------------ */
 
 export function IconMonitor({ className }: IconProps) {
   return (
@@ -163,9 +144,6 @@ export function IconMoon({ className }: IconProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  FILE-TYPE ICONS (FilesTab)                                        */
-/* ------------------------------------------------------------------ */
 
 export function IconFolder({ className }: IconProps) {
   return (
@@ -290,9 +268,6 @@ export function IconFileBlank({ className }: IconProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  NAVIGATION ICONS (Layout sidebar)                                 */
-/* ------------------------------------------------------------------ */
 
 export function IconProjects({ className }: IconProps) {
   return (
@@ -319,9 +294,6 @@ export function IconGear({ className }: IconProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  TOAST / STATUS ICONS                                              */
-/* ------------------------------------------------------------------ */
 
 export function IconCheckCircle({ className }: IconProps) {
   return (
@@ -374,9 +346,6 @@ export function IconStatusOffline({ className }: IconProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  ACTION ICONS                                                      */
-/* ------------------------------------------------------------------ */
 
 export function IconPlusCircle({ className }: IconProps) {
   return (
@@ -544,9 +513,6 @@ export function IconX({ className }: IconProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  QUOTA / METRIC ICONS                                              */
-/* ------------------------------------------------------------------ */
 
 export function IconServer({ className }: IconProps) {
   return (

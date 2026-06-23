@@ -23,7 +23,6 @@ export function Select({ options, value, onChange, placeholder = 'Select...', di
 
   const selected = options.find((o) => o.value === value);
 
-  // Close on click outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -34,7 +33,6 @@ export function Select({ options, value, onChange, placeholder = 'Select...', di
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Close on escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);

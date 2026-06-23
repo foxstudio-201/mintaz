@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b0f1a"/>
+      <stop offset="1" stop-color="#070a12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(220 140) rotate(35) scale(620)">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0" cy="0" r="1" gradientTransform="translate(1100 560) rotate(220) scale(560)">
+      <stop offset="0" stop-color="#5b73ff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#5b73ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+  <rect x="2" y="2" width="1196" height="626" rx="28" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- Leaf logo -->
+  <g transform="translate(96 200) scale(7.4)">
+    <path d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z" fill="#34d399" opacity="0.3"/>
+    <path d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M9 25C13 18 18 11 24 5" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M12 21c3-2 5.5-4.5 8-8M15 17c2-1.5 4-3.5 6-7" stroke="#10b981" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="21" cy="9" r="2" fill="#34d399" opacity="0.5"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="372" y="288" font-family="Inter, 'DejaVu Sans', sans-serif" font-size="132" font-weight="700" fill="#ffffff" letter-spacing="-2">Mintaz</text>
+
+  <!-- Tagline -->
+  <text x="376" y="356" font-family="Inter, 'DejaVu Sans', sans-serif" font-size="38" font-weight="500" fill="#94a3b8">Self-hosted Platform-as-a-Service</text>
+
+  <!-- Sub -->
+  <text x="96" y="498" font-family="Inter, 'DejaVu Sans', sans-serif" font-size="30" font-weight="400" fill="#64748b">Push to Git → live container · per-branch previews · auto reverse-proxy</text>
+
+  <!-- Chips -->
+  <g font-family="Inter, 'DejaVu Sans', sans-serif" font-size="24" font-weight="600">
+    <rect x="96" y="540" width="150" height="48" rx="24" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-opacity="0.4"/>
+    <text x="171" y="571" fill="#34d399" text-anchor="middle">Docker</text>
+    <rect x="262" y="540" width="190" height="48" rx="24" fill="#5b73ff" fill-opacity="0.14" stroke="#5b73ff" stroke-opacity="0.4"/>
+    <text x="357" y="571" fill="#7c93ff" text-anchor="middle">Cloudflare</text>
+    <rect x="468" y="540" width="170" height="48" rx="24" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="553" y="571" fill="#cbd5e1" text-anchor="middle">Previews</text>
+  </g>
+</svg>

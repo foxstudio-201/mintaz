@@ -85,7 +85,6 @@ export function CreateProject() {
     }
   };
 
-  // Import a GitHub repo: prefill URL, branch, name; fetch branch list.
   const chooseRepo = async (r: GithubRepo) => {
     setSelectedRepo(r);
     setBranches([r.default_branch]);
@@ -94,14 +93,12 @@ export function CreateProject() {
       const { branches } = await api.githubBranches(r.owner, r.name);
       setBranches(branches.length ? branches : [r.default_branch]);
     } catch {
-      /* keep default branch */
     }
   };
 
   const useGithub = Boolean(gh?.connected && !manual);
   const filteredRepos = repos.filter((r) => r.full_name.toLowerCase().includes(repoQuery.toLowerCase()));
 
-  // Selecting a framework prefills its commands + port (Vercel-style).
   const pickFramework = (f: Framework) => {
     setForm((prev) => ({
       ...prev,
@@ -150,7 +147,6 @@ export function CreateProject() {
       <h1 className="mb-1 text-2xl font-semibold text-slate-900 dark:text-white">{t('createProject.title')}</h1>
       <p className="mb-6 text-sm text-slate-400">{t('createProject.subtitle')}</p>
 
-      {/* Stepper */}
       <div className="mb-6 flex items-center gap-2">
         {STEP_KEYS.map((labelKey, i) => (
           <div key={labelKey} className="flex flex-1 items-center gap-2">
@@ -280,14 +276,12 @@ export function CreateProject() {
               </p>
             </Field>
 
-            {/* Dockerfile path (auto + dockerfile modes) */}
             {(form.framework === 'dockerfile' || form.framework === 'auto') && (
               <Field label={t('createProject.dockerfilePath')}>
                 <input className="input" value={form.dockerfile_path} onChange={(e) => set('dockerfile_path', e.target.value)} placeholder="Dockerfile" />
               </Field>
             )}
 
-            {/* Commands for generated builds */}
             {selected && selected.type !== 'dockerfile' && (
               <>
                 {selected.type === 'node' && (

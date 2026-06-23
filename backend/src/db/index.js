@@ -1,5 +1,3 @@
-// SQLite connection (better-sqlite3). PostgreSQL is supported via the same
-// query surface in db/postgres.js when DB_DRIVER=postgres.
 import Database from 'better-sqlite3';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,7 +20,6 @@ export function migrate() {
   ensureColumns();
 }
 
-// Add columns introduced after the initial schema to pre-existing databases.
 function ensureColumns() {
   const additions = {
     users: [
@@ -56,7 +53,6 @@ function ensureColumns() {
   backfillPublicSlugs();
 }
 
-// Give any project still missing a public_slug a stable random one.
 function backfillPublicSlugs() {
   const rows = db.prepare(`SELECT id, slug FROM projects WHERE public_slug IS NULL OR public_slug = ''`).all();
   if (!rows.length) return;
@@ -70,7 +66,6 @@ function backfillPublicSlugs() {
   for (const r of rows) upd.run(`${r.slug.slice(0, 18)}-${rnd()}`, r.id);
 }
 
-// Run pending migrations on import so every entrypoint has a ready DB.
 migrate();
 
 export default db;

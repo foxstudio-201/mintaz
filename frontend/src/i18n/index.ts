@@ -29,7 +29,6 @@ i18n.use(initReactI18next).init({
   returnNull: false,
 });
 
-// Keep <html lang> in sync for accessibility / correct date formatting hints.
 document.documentElement.lang = i18n.language;
 i18n.on('languageChanged', (lng) => {
   localStorage.setItem(STORAGE_KEY, lng);

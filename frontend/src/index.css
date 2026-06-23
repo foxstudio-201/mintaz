@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Light theme (default) ---------- */
 :root {
   --bg:           #f8f9fc;
   --bg-card:      rgba(255, 255, 255, 0.85);
@@ -19,7 +18,6 @@
   --glow-opacity: 0.15;
 }
 
-/* ---------- Dark theme ---------- */
 :root.dark {
   --bg:           #070a12;
   --bg-card:      rgba(255, 255, 255, 0.03);
@@ -112,7 +110,6 @@ body {
   }
 }
 
-/* Scrollbars */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -125,7 +122,6 @@ body {
   background: var(--scrollbar-h);
 }
 
-/* Loading skeleton shimmer */
 .skeleton {
   @apply relative overflow-hidden rounded-lg;
   background: var(--skeleton);

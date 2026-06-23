@@ -1,4 +1,3 @@
-// Deployment listing, detail, logs, stop; preview environment listing.
 import { db } from '../db/index.js';
 import { stopDeployment, destroyPreview } from '../services/deploy.js';
 import { getLogs } from '../services/logs.js';
@@ -31,7 +30,6 @@ function ownDeployment(request, reply) {
 export default async function deploymentRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
-  // List deployments for a project.
   fastify.get('/project/:projectId', async (request, reply) => {
     const p = ownProject(request, reply, request.params.projectId);
     if (!p) return;
@@ -42,7 +40,6 @@ export default async function deploymentRoutes(fastify) {
     return { deployments: rows };
   });
 
-  // Active preview environments for a project.
   fastify.get('/project/:projectId/previews', async (request, reply) => {
     const p = ownProject(request, reply, request.params.projectId);
     if (!p) return;
@@ -72,7 +69,6 @@ export default async function deploymentRoutes(fastify) {
     return { ok: true };
   });
 
-  // Health / ping history + summary for a deployment.
   fastify.get('/:id/health', async (request, reply) => {
     const d = ownDeployment(request, reply);
     if (!d) return;
@@ -80,7 +76,6 @@ export default async function deploymentRoutes(fastify) {
     return { summary: healthSummary(d.id), checks: getHealth(d.id, { sinceId }) };
   });
 
-  // File tree of the deployment's checked-out source.
   fastify.get('/:id/files', async (request, reply) => {
     const d = ownDeployment(request, reply);
     if (!d) return;
@@ -92,7 +87,6 @@ export default async function deploymentRoutes(fastify) {
     }
   });
 
-  // Read one file from the deployment's source.
   fastify.get('/:id/file', async (request, reply) => {
     const d = ownDeployment(request, reply);
     if (!d) return;
@@ -105,7 +99,6 @@ export default async function deploymentRoutes(fastify) {
     }
   });
 
-  // Destroy a preview environment.
   fastify.delete('/preview/:previewId', async (request, reply) => {
     const pv = db.prepare('SELECT * FROM preview_deployments WHERE id = ?').get(request.params.previewId);
     if (!pv) return reply.code(404).send({ error: 'preview not found' });

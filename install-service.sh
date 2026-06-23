@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Script để cài đặt Mintaz như một systemd service
-# Tự động chạy khi máy khởi động
-
 set -e
 
-# Kiểm tra quyền root
 if [ "$EUID" -ne 0 ]; then
   echo "❌ Vui lòng chạy script này với sudo"
   echo "   sudo $0"
@@ -21,13 +17,11 @@ TEMPLATE_FILE="${INSTALL_DIR}/deploy/systemd/mintaz-api.service"
 echo "🚀 Cài đặt Mintaz systemd service..."
 echo ""
 
-# Kiểm tra template có tồn tại không
 if [ ! -f "$TEMPLATE_FILE" ]; then
   echo "❌ Không tìm thấy template: $TEMPLATE_FILE"
   exit 1
 fi
 
-# Kiểm tra backend/.env có tồn tại không
 if [ ! -f "${INSTALL_DIR}/backend/.env" ]; then
   echo "❌ Không tìm thấy file cấu hình: ${INSTALL_DIR}/backend/.env"
   echo "   Vui lòng chạy setup.sh trước"
@@ -35,7 +29,6 @@ if [ ! -f "${INSTALL_DIR}/backend/.env" ]; then
 fi
 
 echo "📝 Tạo systemd service file..."
-# Thay thế placeholders trong template
 sed -e "s|__USER__|${SERVICE_USER}|g" \
     -e "s|__INSTALL_DIR__|${INSTALL_DIR}|g" \
     "$TEMPLATE_FILE" > "$SERVICE_FILE"
@@ -58,7 +51,6 @@ systemctl start "$SERVICE_NAME"
 echo "✅ Đã start $SERVICE_NAME"
 echo ""
 
-# Kiểm tra trạng thái
 echo "📊 Trạng thái service:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if systemctl is-active --quiet "$SERVICE_NAME"; then

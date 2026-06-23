@@ -1,4 +1,3 @@
-// Banner shown at the top of the dashboard when quota limits are approaching or reached.
 import { useTranslation } from 'react-i18next';
 import { IconInfoCircle, IconXCircle } from './icons';
 

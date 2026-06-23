@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Dev server proxies API + WS to the backend on :8080.
 export default defineConfig({
   plugins: [react()],
   server: {

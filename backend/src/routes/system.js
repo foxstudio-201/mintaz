@@ -1,4 +1,3 @@
-// System status: docker availability, proxy, queue, totals.
 import { db } from '../db/index.js';
 import { config } from '../config.js';
 import { dockerAvailable } from '../services/docker.js';
@@ -6,10 +5,8 @@ import { queueStats } from '../services/queue.js';
 import { presetList } from '../services/presets.js';
 
 export default async function systemRoutes(fastify) {
-  // Public health check.
   fastify.get('/health', async () => ({ ok: true, ts: Date.now() }));
 
-  // Framework presets for the UI picker.
   fastify.get('/frameworks', async () => ({ frameworks: presetList() }));
 
   fastify.get('/status', { onRequest: [fastify.authenticate] }, async () => {

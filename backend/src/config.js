@@ -1,4 +1,3 @@
-// Centralised, validated configuration loaded from environment.
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const backendRoot = resolve(__dirname, '..');
 
-// Tiny .env loader (no dependency) — only sets keys not already in process.env.
 function loadDotenv() {
   const envPath = join(backendRoot, '.env');
   if (!existsSync(envPath)) return;
@@ -40,19 +38,12 @@ export const config = {
   jwtSecret: env.JWT_SECRET || 'dev-insecure-secret-change-me',
   tokenTtl: env.TOKEN_TTL || '7d',
   ipHashSalt: env.IP_HASH_SALT || 'mintaz-analytics-salt-change-me',
-  // Key for encrypting stored third-party tokens at rest. Falls back to the
-  // JWT secret so a single strong secret is enough; set separately to rotate
-  // signing and encryption keys independently.
   secretKey: env.SECRET_KEY || env.JWT_SECRET || 'dev-insecure-secret-change-me',
 
-  // Comma-separated allowlist of browser origins for CORS. Empty = reflect any
-  // origin (convenient for dev; tighten to your dashboard URL in production).
   corsOrigins: (env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
 
   adminEmail: env.ADMIN_EMAIL || 'admin@your-domain.com',
   adminPassword: env.ADMIN_PASSWORD || 'changeme',
-  // Allow public self-registration. Disable to lock down an instance to
-  // existing accounts (new users must be created by an admin).
   allowRegistration: bool(env.ALLOW_REGISTRATION, true),
 
   dataDir: abs(env.DATA_DIR || './data'),
@@ -69,30 +60,18 @@ export const config = {
   defaultRestartPolicy: env.DEFAULT_RESTART_POLICY || 'unless-stopped',
   autoCleanup: bool(env.AUTO_CLEANUP, true),
 
-  // Per-container resource caps + hardening. On a public instance these bound
-  // the blast radius of any single tenant's container (OOM, CPU hog, fork bomb,
-  // privilege escalation). Tune per host capacity.
   container: {
-    memory: env.CONTAINER_MEMORY || '512m', // hard RAM cap (also caps swap)
-    cpus: env.CONTAINER_CPUS || '1.0',       // fractional CPU cap
-    pidsLimit: num(env.CONTAINER_PIDS_LIMIT, 256), // anti fork-bomb
-    nofile: num(env.CONTAINER_NOFILE, 1024), // open-file ulimit
-    // Drop all Linux capabilities (keep only NET_BIND_SERVICE + the few nginx
-    // needs). Off by default since some images expect more; enable for stricter
-    // isolation once you've confirmed your deployments still run.
+    memory: env.CONTAINER_MEMORY || '512m',
+    cpus: env.CONTAINER_CPUS || '1.0',
+    pidsLimit: num(env.CONTAINER_PIDS_LIMIT, 256),
+    nofile: num(env.CONTAINER_NOFILE, 1024),
     dropCaps: bool(env.CONTAINER_DROP_CAPS, false),
   },
-  // RAM cap for the build step so a heavy `npm run build` can't exhaust the host.
   buildMemory: env.BUILD_MEMORY || '2g',
-  // Block container↔container traffic on the shared bridge (tenant isolation).
   disableInterContainer: bool(env.DISABLE_INTER_CONTAINER, true),
 
   proxy: (env.PROXY || 'caddy').toLowerCase(),
-  // Port Mintaz's own reverse proxy listens on (the Cloudflare tunnel points
-  // *.domain here). Kept off :80 so it never clashes with an existing webserver.
   proxyHttpPort: num(env.PROXY_HTTP_PORT, 8088),
-  // Built-in Node reverse proxy on PROXY_HTTP_PORT (routes *.domain by Host to
-  // containers). Set false if you front everything with Caddy/Nginx instead.
   builtinProxy: bool(env.BUILTIN_PROXY, true),
   caddySnippet: env.CADDY_SNIPPET || '/etc/caddy/mintaz.routes.caddy',
   caddyReloadCmd: env.CADDY_RELOAD_CMD || 'sudo systemctl reload caddy',
@@ -100,19 +79,13 @@ export const config = {
   nginxReloadCmd: env.NGINX_RELOAD_CMD || 'sudo systemctl reload nginx',
 
   githubWebhookSecret: env.GITHUB_WEBHOOK_SECRET || '',
-  // Global fallback token for cloning private repos (per-project token wins).
   githubToken: env.GITHUB_TOKEN || '',
-  // GitHub OAuth App (for "Connect GitHub" / repo import).
   githubOAuthClientId: env.GITHUB_OAUTH_CLIENT_ID || '',
   githubOAuthClientSecret: env.GITHUB_OAUTH_CLIENT_SECRET || '',
-  // Public base URL the browser uses (for OAuth redirect_uri). Dev: http://localhost:5173
   publicUrl: env.PUBLIC_URL || '',
   cfTunnelName: env.CF_TUNNEL_NAME || 'mintaz-tunnel',
 };
 
-// Refuse to start with the shipped placeholder secrets — on a public instance
-// these would let anyone forge tokens or log in as the seeded admin. Set
-// ALLOW_INSECURE_DEFAULTS=1 only for throwaway local development.
 const INSECURE_DEFAULTS = {
   JWT_SECRET: ['dev-insecure-secret-change-me', 'change-me-to-a-long-random-string'],
   ADMIN_PASSWORD: ['changeme'],
@@ -133,5 +106,4 @@ if (!bool(env.ALLOW_INSECURE_DEFAULTS)) {
 }
 
 export const dashUrl = () => `https://${config.dashSubdomain}.${config.baseDomain}`;
-// Base URL the browser hits; used to build the OAuth callback.
 export const publicBaseUrl = () => config.publicUrl || dashUrl();

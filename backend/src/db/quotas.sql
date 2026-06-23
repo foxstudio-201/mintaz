@@ -1,4 +1,3 @@
--- Resource quota limits per user account.
 CREATE TABLE IF NOT EXISTS user_quotas (
   user_id              TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   max_projects         INTEGER NOT NULL DEFAULT 3,
@@ -11,7 +10,6 @@ CREATE TABLE IF NOT EXISTS user_quotas (
   max_memory_gbh_mo    REAL    NOT NULL DEFAULT 20
 );
 
--- Monthly cumulative usage that cannot be derived from live tables.
 CREATE TABLE IF NOT EXISTS usage_records (
   user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   month                TEXT NOT NULL,

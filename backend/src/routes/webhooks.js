@@ -1,4 +1,3 @@
-// GitHub webhook receiver. Signature-verified push / pull_request → deploy.
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
@@ -13,7 +12,6 @@ function audit({ projectId, event, action, deliveryId, ref, ok, message }) {
 }
 
 export default async function webhookRoutes(fastify) {
-  // Public endpoint — verified via HMAC signature, no JWT.
   fastify.post('/github/:projectId', async (request, reply) => {
     const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(request.params.projectId);
     const event = request.headers['x-github-event'];
@@ -96,7 +94,6 @@ export default async function webhookRoutes(fastify) {
     return { ok: true, skipped: `unhandled event: ${event}` };
   });
 
-  // Recent webhook deliveries for a project (auth-protected).
   fastify.get('/deliveries/:projectId', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     const p = db.prepare('SELECT user_id FROM projects WHERE id = ?').get(request.params.projectId);
     if (!p || p.user_id !== request.user.sub) return reply.code(404).send({ error: 'not found' });

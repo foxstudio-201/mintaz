@@ -1,7 +1,5 @@
-// Promise + streaming wrappers around child_process for git/docker/proxy commands.
 import { spawn } from 'node:child_process';
 
-// Run a command to completion, collecting stdout/stderr.
 export function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { ...opts });
@@ -17,7 +15,6 @@ export function run(cmd, args, opts = {}) {
   });
 }
 
-// Run a command, streaming each output line to onLine; resolves with exit code.
 export function stream(cmd, args, { onLine, ...opts } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { ...opts });

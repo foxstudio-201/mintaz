@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" width="96" height="96" role="img" aria-label="Mintaz logo">
+  <!-- Leaf body — duotone fill -->
+  <path d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z" fill="#34d399" opacity="0.3"/>
+  <!-- Leaf outline -->
+  <path d="M7 27C5 19 10 9 24 4c2 9-4 19-14 21-1.5.3-2.5-.5-3-2Z" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Center vein -->
+  <path d="M9 25C13 18 18 11 24 5" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Side veins -->
+  <path d="M12 21c3-2 5.5-4.5 8-8M15 17c2-1.5 4-3.5 6-7" stroke="#10b981" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+  <!-- Dewdrop accent -->
+  <circle cx="21" cy="9" r="2" fill="#34d399" opacity="0.5"/>
+</svg>

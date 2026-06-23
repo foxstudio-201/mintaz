@@ -5,7 +5,6 @@ import { toast } from '../store/toast';
 import { Spinner } from './ui';
 import { IconCheckCircle, IconChevronDown, IconChevronRight } from './icons';
 
-// Admin form: configure the GitHub OAuth App so the "Connect GitHub" button works.
 export function GithubOAuthSetup({ onSaved }: { onSaved?: () => void }) {
   const { t } = useTranslation();
   const [cfg, setCfg] = useState<GithubOAuthConfig | null>(null);
@@ -20,7 +19,7 @@ export function GithubOAuthSetup({ onSaved }: { onSaved?: () => void }) {
       setCfg(c);
       setClientId(c.client_id || '');
       setPublicUrl(c.public_url || window.location.origin);
-      setOpen(!c.configured); // expand automatically when not yet set up
+      setOpen(!c.configured);
     });
   useEffect(() => {
     load().catch(() => {});

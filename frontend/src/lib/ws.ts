@@ -1,4 +1,3 @@
-// WebSocket log stream with auto-reconnect.
 import { tokenStore } from './api';
 
 export type LogMsg =
@@ -27,7 +26,6 @@ export function connectLogs(
         const msg = JSON.parse(e.data) as LogMsg;
         onMessage(msg);
       } catch {
-        /* ignore */
       }
     };
     ws.onclose = () => {

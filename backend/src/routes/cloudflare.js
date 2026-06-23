@@ -1,4 +1,3 @@
-// Cloudflare connection + per-project domain/DNS routes.
 import { db } from '../db/index.js';
 import { config } from '../config.js';
 import { getSetting, setSetting } from '../services/settings.js';
@@ -25,7 +24,6 @@ function ownProject(request, reply) {
   return p;
 }
 
-// Resolve the tunnel CNAME target: explicit setting wins, else auto-detect.
 async function resolveTunnelTarget(token, account) {
   const manual = getSetting('cf_tunnel_cname');
   if (manual) return manual;
@@ -36,7 +34,6 @@ async function resolveTunnelTarget(token, account) {
 export default async function cloudflareRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
-  // Connection status.
   fastify.get('/status', async (request) => {
     const c = conn(request.user.sub);
     return {
@@ -47,7 +44,6 @@ export default async function cloudflareRoutes(fastify) {
     };
   });
 
-  // Connect by pasting a Cloudflare API token (Zone:Read + DNS:Edit).
   fastify.post('/connect', async (request, reply) => {
     const token = String(request.body?.token || '').trim();
     if (!token) return reply.code(400).send({ error: 'token required' });
@@ -68,7 +64,6 @@ export default async function cloudflareRoutes(fastify) {
     return { ok: true };
   });
 
-  // List domains (zones) available to the connected token.
   fastify.get('/zones', async (request, reply) => {
     const c = conn(request.user.sub);
     if (!c?.cf_token) return reply.code(400).send({ error: 'Cloudflare not connected' });
@@ -79,15 +74,12 @@ export default async function cloudflareRoutes(fastify) {
     }
   });
 
-  // Save the tunnel CNAME target (e.g. <uuid>.cfargotunnel.com) used for records.
   fastify.post('/tunnel', async (request) => {
     const cname = String(request.body?.tunnel_cname || '').trim();
     setSetting('cf_tunnel_cname', cname);
     return { ok: true, tunnel_cname: cname };
   });
 
-  // Attach a Cloudflare zone to a project and create/refresh its DNS record.
-  // Body: { zone_id, zone_name }. Hostname = <project.slug>.<zone_name>.
   fastify.post('/project/:id/domain', async (request, reply) => {
     const p = ownProject(request, reply);
     if (!p) return;
@@ -117,7 +109,6 @@ export default async function cloudflareRoutes(fastify) {
     }
   });
 
-  // Remove the project's Cloudflare DNS record.
   fastify.delete('/project/:id/domain', async (request, reply) => {
     const p = ownProject(request, reply);
     if (!p) return;

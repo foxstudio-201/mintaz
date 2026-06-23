@@ -1,4 +1,3 @@
-// Quota management — limits, usage computation, and enforcement.
 import { db } from '../db/index.js';
 import { execSync } from 'node:child_process';
 import { config } from '../config.js';
@@ -22,7 +21,6 @@ function monthStartTs(month) {
   return new Date((month || currentMonth()) + '-01T00:00:00Z').getTime();
 }
 
-// Ensure a user_quotas row exists (INSERT OR IGNORE uses schema defaults).
 export function ensureQuotas(userId) {
   db.prepare('INSERT OR IGNORE INTO user_quotas (user_id) VALUES (?)').run(userId);
 }
@@ -49,7 +47,6 @@ export function updateQuotas(userId, updates) {
   return getQuotas(userId);
 }
 
-// Approximate storage used by the user's checkout directories.
 function computeStorageGb(userId) {
   try {
     const projects = db.prepare('SELECT id FROM projects WHERE user_id = ?').all(userId);
@@ -61,7 +58,7 @@ function computeStorageGb(userId) {
           const dir = `${config.workDir}/builds/${d.id}`;
           const out = execSync(`du -sb "${dir}" 2>/dev/null`, { encoding: 'utf8', timeout: 2000 });
           totalBytes += parseInt(out.split('\t')[0]) || 0;
-        } catch { /* dir doesn't exist */ }
+        } catch { }
       }
     }
     return totalBytes / (1024 * 1024 * 1024);
@@ -70,7 +67,6 @@ function computeStorageGb(userId) {
   }
 }
 
-// Compute all usage metrics for a user — combines live DB queries + cumulative records.
 export function computeUsage(userId) {
   const quotas = getQuotas(userId);
   const month = currentMonth();
@@ -108,12 +104,10 @@ export function computeUsage(userId) {
   };
 }
 
-// Check if a deploy should be allowed. Returns { allowed, warnings, reason, usage }.
 export function checkDeployQuota(userId) {
   const usage = computeUsage(userId);
   const SOFT_THRESHOLD = 0.8;
 
-  // Hard-limit checks — these block deploys.
   const hardChecks = [
     ['projects', 'Maximum project limit reached'],
     ['deployments_monthly', 'Monthly deployment limit reached'],
@@ -125,7 +119,6 @@ export function checkDeployQuota(userId) {
     }
   }
 
-  // Soft-limit warnings.
   const warnings = [];
   for (const [key, val] of Object.entries(usage)) {
     if (val.limit > 0 && val.used / val.limit >= SOFT_THRESHOLD) {

@@ -1,4 +1,3 @@
-// Framework SVG icons with brand colors
 
 type IconProps = { className?: string; size?: number };
 
@@ -150,7 +149,6 @@ export function IconDocker({ className, size }: IconProps) {
   );
 }
 
-// Map framework ID to icon component
 export const FRAMEWORK_ICONS: Record<string, React.ComponentType<IconProps>> = {
   auto: IconAuto,
   nextjs: IconNextJS,

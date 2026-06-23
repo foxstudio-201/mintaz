@@ -1,21 +1,12 @@
-/**
- * Mintaz Analytics Tracker
- * Lightweight page view tracking script (~2KB)
- * Injected automatically by edge proxy
- */
 (function() {
   'use strict';
 
-  // Get deployment ID from meta tag
   const meta = document.querySelector('meta[name="mintaz-id"]');
   if (!meta) return;
 
   const deploymentId = meta.content;
   const apiUrl = meta.getAttribute('data-api-url') || '';
 
-  /**
-   * Track a page view
-   */
   function track() {
     const params = new URLSearchParams(window.location.search);
 
@@ -28,18 +19,15 @@
       screen_width: window.screen.width,
       screen_height: window.screen.height,
       language: navigator.language,
-      // UTM parameters
       utm_source: params.get('utm_source'),
       utm_medium: params.get('utm_medium'),
       utm_campaign: params.get('utm_campaign'),
     };
 
-    // Use sendBeacon for non-blocking request (Blob needed for correct Content-Type)
     if (navigator.sendBeacon) {
       var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       navigator.sendBeacon(apiUrl + '/api/track', blob);
     } else {
-      // Fallback to fetch
       fetch(apiUrl + '/api/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,9 +37,6 @@
     }
   }
 
-  /**
-   * Track custom event
-   */
   window.mintazTrack = function(eventName, eventData) {
     const data = {
       deployment_id: deploymentId,
@@ -73,14 +58,12 @@
     }
   };
 
-  // Track initial page view
   if (document.readyState === 'complete') {
     track();
   } else {
     window.addEventListener('load', track);
   }
 
-  // Track SPA navigation (History API)
   let lastPath = window.location.pathname + window.location.search;
 
   function checkNavigation() {
@@ -91,10 +74,8 @@
     }
   }
 
-  // Listen for popstate (back/forward)
   window.addEventListener('popstate', checkNavigation);
 
-  // Monkey-patch pushState and replaceState
   const originalPushState = history.pushState;
   const originalReplaceState = history.replaceState;
 

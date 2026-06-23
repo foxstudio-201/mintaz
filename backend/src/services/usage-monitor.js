@@ -1,5 +1,3 @@
-// Background poller: collect docker stats → accumulate into usage_records.
-// Also collects system metrics (CPU, RAM, disk) for admin dashboard charts.
 import { execSync } from 'node:child_process';
 import os from 'node:os';
 import { db } from '../db/index.js';
@@ -16,12 +14,12 @@ function collectDockerStats() {
       { encoding: 'utf8', timeout: 10000 },
     );
   } catch {
-    return; // Docker not available or no containers running.
+    return;
   }
 
   const deltaSec = POLL_INTERVAL_MS / 1000;
   const month = currentMonth();
-  const acc = new Map(); // userId -> { cpuSeconds, memBytesSeconds }
+  const acc = new Map();
 
   for (const line of stdout.trim().split('\n')) {
     if (!line) continue;
@@ -29,7 +27,6 @@ function collectDockerStats() {
     if (parts.length < 3) continue;
     const [dockerIdShort, cpuPerc, memUsage] = parts;
 
-    // Docker stats shows short ID (first 12 chars).
     const container = db.prepare(
       `SELECT c.*, p.user_id FROM containers c
        JOIN projects p ON p.id = c.project_id
@@ -68,7 +65,6 @@ function collectDockerStats() {
   }
 }
 
-// Called when a deployment finishes (success or failure) to record build time.
 export function recordBuildTime(deploymentId) {
   const dep = db.prepare(
     `SELECT d.*, p.user_id FROM deployments d
@@ -88,7 +84,6 @@ export function recordBuildTime(deploymentId) {
   ).run(dep.user_id, month, buildSeconds);
 }
 
-// Collect system metrics snapshot for admin dashboard charts.
 function collectSystemMetrics() {
   const loadAvg = os.loadavg();
   const cpuCores = os.cpus().length;
@@ -105,13 +100,12 @@ function collectSystemMetrics() {
     const diskTotal = parseInt(parts[1]) || 1;
     const diskUsed = parseInt(parts[2]) || 0;
     diskPercent = Math.round((diskUsed / diskTotal) * 100);
-  } catch { /* ignore */ }
+  } catch { }
 
   const point = { t: Date.now(), cpu: cpuPercent, ram: memPercent, disk: diskPercent };
   const raw = getSetting('system_metrics_history');
   const history = raw ? JSON.parse(raw) : [];
   history.push(point);
-  // Keep last 360 points (~6h at 1/min).
   if (history.length > 360) history.splice(0, history.length - 360);
   setSetting('system_metrics_history', JSON.stringify(history));
 }
@@ -122,13 +116,11 @@ export function startUsageMonitor() {
   timer = setInterval(() => {
     try { collectDockerStats(); } catch (e) { console.error('Usage monitor error:', e.message); }
   }, POLL_INTERVAL_MS);
-  // System metrics every 60s.
   setInterval(() => {
-    try { collectSystemMetrics(); } catch { /* ignore */ }
+    try { collectSystemMetrics(); } catch { }
   }, 60000);
-  // Initial collection after 10s.
   setTimeout(() => {
-    try { collectDockerStats(); } catch { /* ignore */ }
-    try { collectSystemMetrics(); } catch { /* ignore */ }
+    try { collectDockerStats(); } catch { }
+    try { collectSystemMetrics(); } catch { }
   }, 10000);
 }

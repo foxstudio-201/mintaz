@@ -1,17 +1,8 @@
-/**
- * Analytics endpoints - query tracking data for deployments
- * Protected API (authentication required)
- */
 import { db } from '../db/index.js';
 
 export default async function analyticsRoutes(fastify) {
-  // All analytics routes require authentication
   fastify.addHook('onRequest', fastify.authenticate);
 
-  /**
-   * GET /api/analytics/deployments - List deployments with analytics data
-   * Returns deployments that have page views
-   */
   fastify.get('/deployments', async (request) => {
     const userId = request.user.sub;
 
@@ -40,16 +31,12 @@ export default async function analyticsRoutes(fastify) {
     return { deployments };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/summary - Get summary metrics
-   */
   fastify.get('/:deploymentId/summary', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
     const prevSince = since - days * 24 * 60 * 60 * 1000;
 
-    // Current period metrics
     const current = db.prepare(`
       SELECT
         COUNT(DISTINCT ip_hash) as visitors,
@@ -59,7 +46,6 @@ export default async function analyticsRoutes(fastify) {
       WHERE deployment_id = ? AND timestamp > ?
     `).get(deploymentId, since);
 
-    // Previous period metrics
     const previous = db.prepare(`
       SELECT
         COUNT(DISTINCT ip_hash) as visitors,
@@ -69,7 +55,6 @@ export default async function analyticsRoutes(fastify) {
       WHERE deployment_id = ? AND timestamp > ? AND timestamp <= ?
     `).get(deploymentId, prevSince, since);
 
-    // Calculate bounce rate (single-page sessions / total sessions)
     const bounceRate = calculateBounceRate(deploymentId, since);
     const prevBounceRate = calculateBounceRate(deploymentId, prevSince, since);
 
@@ -93,9 +78,6 @@ export default async function analyticsRoutes(fastify) {
     };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/timeseries - Get visitors over time
-   */
   fastify.get('/:deploymentId/timeseries', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -115,9 +97,6 @@ export default async function analyticsRoutes(fastify) {
     return { timeseries };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/pages - Top pages
-   */
   fastify.get('/:deploymentId/pages', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -139,9 +118,6 @@ export default async function analyticsRoutes(fastify) {
     return { pages };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/referrers - Top referrers
-   */
   fastify.get('/:deploymentId/referrers', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -166,9 +142,6 @@ export default async function analyticsRoutes(fastify) {
     return { referrers };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/countries - Top countries
-   */
   fastify.get('/:deploymentId/countries', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -192,7 +165,6 @@ export default async function analyticsRoutes(fastify) {
       LIMIT ?
     `).all(deploymentId, since, limit);
 
-    // Calculate percentages
     const withPercent = countries.map(c => ({
       ...c,
       percentage: totalVisitors.total > 0
@@ -203,9 +175,6 @@ export default async function analyticsRoutes(fastify) {
     return { countries: withPercent };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/devices - Device breakdown
-   */
   fastify.get('/:deploymentId/devices', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -217,7 +186,6 @@ export default async function analyticsRoutes(fastify) {
       WHERE deployment_id = ? AND timestamp > ?
     `).get(deploymentId, since);
 
-    // Device types
     const devices = db.prepare(`
       SELECT device_type, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
@@ -226,7 +194,6 @@ export default async function analyticsRoutes(fastify) {
       ORDER BY visitors DESC
     `).all(deploymentId, since);
 
-    // Browsers
     const browsers = db.prepare(`
       SELECT browser, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
@@ -236,7 +203,6 @@ export default async function analyticsRoutes(fastify) {
       LIMIT 10
     `).all(deploymentId, since);
 
-    // Operating systems
     const operatingSystems = db.prepare(`
       SELECT os, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
@@ -246,7 +212,6 @@ export default async function analyticsRoutes(fastify) {
       LIMIT 10
     `).all(deploymentId, since);
 
-    // Add percentages
     const addPercent = (items) => items.map(item => ({
       ...item,
       percentage: totalVisitors.total > 0
@@ -261,9 +226,6 @@ export default async function analyticsRoutes(fastify) {
     };
   });
 
-  /**
-   * GET /api/analytics/:deploymentId/events - Custom events
-   */
   fastify.get('/:deploymentId/events', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
@@ -286,12 +248,7 @@ export default async function analyticsRoutes(fastify) {
   });
 }
 
-/**
- * Calculate bounce rate
- * Bounce = session with only 1 page view
- */
 function calculateBounceRate(deploymentId, since, until = Date.now()) {
-  // Get sessions (group by ip_hash + date)
   const sessions = db.prepare(`
     SELECT
       ip_hash,
@@ -308,9 +265,6 @@ function calculateBounceRate(deploymentId, since, until = Date.now()) {
   return Math.round((bounces / sessions.length) * 100);
 }
 
-/**
- * Calculate percentage change between two values
- */
 function calculateChange(current, previous) {
   if (!previous || previous === 0) {
     return current > 0 ? 100 : 0;

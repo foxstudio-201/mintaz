@@ -1,14 +1,13 @@
-// Mintaz — API server entrypoint.
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { config } from './config.js';
-import './db/index.js'; // run migrations on boot
+import { config, publicBaseUrl } from './config.js';
+import './db/index.js';
 
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth.js';
@@ -37,7 +36,6 @@ const fastify = Fastify({
   bodyLimit: 10 * 1024 * 1024,
 });
 
-// Capture the raw body for GitHub signature verification.
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
   req.rawBody = body;
   try {
@@ -48,8 +46,6 @@ fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bo
   }
 });
 
-// Restrict CORS to the configured origins when set; otherwise reflect any
-// origin (dev default). Auth uses bearer tokens, not cookies.
 await fastify.register(cors, {
   origin: config.corsOrigins.length ? config.corsOrigins : true,
   credentials: true,
@@ -57,7 +53,6 @@ await fastify.register(cors, {
 await fastify.register(websocket);
 await fastify.register(authPlugin);
 
-// REST API
 await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(projectRoutes, { prefix: '/api/projects' });
 await fastify.register(deploymentRoutes, { prefix: '/api/deployments' });
@@ -71,7 +66,6 @@ await fastify.register(quotaRoutes, { prefix: '/api/quotas' });
 await fastify.register(trackRoutes, { prefix: '/api' });
 await fastify.register(analyticsRoutes, { prefix: '/api/analytics' });
 
-// Serve tracker.js for analytics
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const publicDir = join(__dirname, '..', 'public');
@@ -83,17 +77,31 @@ if (existsSync(publicDir)) {
   });
 }
 
-// WebSocket
 await fastify.register(wsRoutes, { prefix: '/ws' });
 
-// Serve the built frontend (production). SPA fallback to index.html.
 if (config.staticDir && existsSync(config.staticDir)) {
-  await fastify.register(fastifyStatic, { root: config.staticDir, prefix: '/' });
+  await fastify.register(fastifyStatic, { root: config.staticDir, prefix: '/', index: false });
+
+  const base = publicBaseUrl().replace(/\/+$/, '');
+  let indexHtml = readFileSync(join(config.staticDir, 'index.html'), 'utf8');
+  indexHtml = indexHtml
+    .replace(/(content=")\/(og\.png")/g, `$1${base}/$2`)
+    .replace(/(href=")\/(favicon\.svg")/g, `$1${base}/$2`)
+    .replace(/(href=")\/(apple-touch-icon\.png")/g, `$1${base}/$2`);
+  if (!indexHtml.includes('property="og:url"')) {
+    indexHtml = indexHtml.replace(
+      '</head>',
+      `    <meta property="og:url" content="${base}/" />\n    <link rel="canonical" href="${base}/" />\n  </head>`
+    );
+  }
+  const sendIndex = (reply) => reply.type('text/html; charset=utf-8').send(indexHtml);
+
+  fastify.get('/', (request, reply) => sendIndex(reply));
   fastify.setNotFoundHandler((request, reply) => {
     if (request.raw.url.startsWith('/api') || request.raw.url.startsWith('/ws')) {
       return reply.code(404).send({ error: 'not found' });
     }
-    return reply.sendFile('index.html');
+    return sendIndex(reply);
   });
 } else {
   fastify.get('/', async () => ({

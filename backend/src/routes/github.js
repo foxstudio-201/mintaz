@@ -1,4 +1,3 @@
-// GitHub OAuth + repo-import routes.
 import { db } from '../db/index.js';
 import {
   oauthConfigured,
@@ -21,7 +20,6 @@ function connection(userId) {
 }
 
 export default async function githubRoutes(fastify) {
-  // Connection status for the current user.
   fastify.get('/status', { onRequest: [fastify.authenticate] }, async (request) => {
     const c = connection(request.user.sub);
     return {
@@ -32,7 +30,6 @@ export default async function githubRoutes(fastify) {
     };
   });
 
-  // Read the OAuth App configuration (secret never returned).
   fastify.get('/config', { onRequest: [fastify.authenticate] }, async () => ({
     configured: oauthConfigured(),
     client_id: clientId(),
@@ -40,24 +37,20 @@ export default async function githubRoutes(fastify) {
     callback_url: callbackUrl(),
   }));
 
-  // Save the OAuth App configuration from the web UI.
   fastify.post('/config', { onRequest: [fastify.authenticate] }, async (request) => {
     const b = request.body || {};
     if (typeof b.public_url === 'string') setSetting('gh_public_url', b.public_url.trim().replace(/\/+$/, ''));
     if (typeof b.client_id === 'string') setSetting('gh_client_id', b.client_id.trim());
-    // Only overwrite the secret when a non-empty value is supplied.
     if (typeof b.client_secret === 'string' && b.client_secret.trim()) setSecretSetting('gh_client_secret', b.client_secret.trim());
     return { configured: oauthConfigured(), client_id: clientId(), public_url: publicUrl(), callback_url: callbackUrl() };
   });
 
-  // Returns the GitHub authorize URL with a signed, short-lived state.
   fastify.get('/authorize', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     if (!oauthConfigured()) return reply.code(400).send({ error: 'GitHub OAuth not configured on this server' });
     const state = await reply.jwtSign({ sub: request.user.sub, kind: 'gh-oauth' }, { expiresIn: '10m' });
     return { url: authorizeUrl(state) };
   });
 
-  // OAuth callback (GitHub redirects the browser here). Auth via `state` JWT.
   fastify.get('/callback', async (request, reply) => {
     const { code, state, error } = request.query || {};
     const redirect = (q) => reply.redirect(`/settings?${q}`);
@@ -86,12 +79,11 @@ export default async function githubRoutes(fastify) {
     }
   });
 
-  // Connect by pasting a Personal Access Token (no OAuth App needed).
   fastify.post('/connect-token', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     const token = String(request.body?.token || '').trim();
     if (!token) return reply.code(400).send({ error: 'token required' });
     try {
-      const user = await getUser(token); // validates the token
+      const user = await getUser(token);
       db.prepare('UPDATE users SET github_login = ?, github_token = ?, github_avatar = ? WHERE id = ?').run(
         user.login,
         encryptSecret(token),
@@ -109,7 +101,6 @@ export default async function githubRoutes(fastify) {
     return { ok: true };
   });
 
-  // List the connected account's repositories.
   fastify.get('/repos', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     const c = connection(request.user.sub);
     if (!c?.github_token) return reply.code(400).send({ error: 'GitHub not connected' });
@@ -122,7 +113,6 @@ export default async function githubRoutes(fastify) {
     }
   });
 
-  // List branches of a repo.
   fastify.get('/repos/:owner/:repo/branches', { onRequest: [fastify.authenticate] }, async (request, reply) => {
     const c = connection(request.user.sub);
     if (!c?.github_token) return reply.code(400).send({ error: 'GitHub not connected' });

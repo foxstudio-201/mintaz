@@ -1,4 +1,3 @@
-// The deployment engine — clone → build → run → route → stream logs.
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
@@ -26,14 +25,9 @@ import { decryptSecret } from '../util/crypto.js';
 import { checkDeployQuota } from './quotas.js';
 import { recordBuildTime } from './usage-monitor.js';
 
-const runtimeFollowers = new Map(); // deploymentId -> child process
+const runtimeFollowers = new Map();
 
-// Create/refresh the deployment hostname's Cloudflare CNAME → tunnel.
-//   • Custom domain: project owner's own Cloudflare connection + zone.
-//   • Otherwise: the admin-configured DEFAULT domain (e.g. *.your-domain.com),
-//     so every deploy gets a working <subdomain>.<default-zone> automatically.
 async function ensureProjectDns(project, subdomain, log) {
-  // 1. Project's own custom domain.
   if (project.cf_zone_id && project.cf_tunnel_cname) {
     const owner = db.prepare('SELECT cf_token FROM users WHERE id = ?').get(project.user_id);
     const ownerCfToken = owner?.cf_token ? decryptSecret(owner.cf_token) : null;
@@ -49,7 +43,6 @@ async function ensureProjectDns(project, subdomain, log) {
     }
   }
 
-  // 2. Platform default domain (admin-configured).
   const token = getSecretSetting('default_cf_token');
   const zoneId = getSetting('default_zone_id');
   const zoneName = getSetting('default_zone_name');
@@ -88,17 +81,13 @@ function envFor(project, type) {
   return env;
 }
 
-// Create a deployment record and enqueue it. Returns the deployment row.
 export function createDeployment(project, { type = 'production', branch, prNumber = null, trigger = 'manual' } = {}) {
-  // Enforce quota hard limits before queuing.
   const quotaCheck = checkDeployQuota(project.user_id);
   if (!quotaCheck.allowed) {
     throw new Error(quotaCheck.reason);
   }
 
   const b = branch || project.branch;
-  // Use the project's random public_slug as the subdomain base on the shared
-  // default domain (e.g. web-7f3a2.your-domain.com), falling back to slug.
   const subdomain = subdomainFor({ slug: project.public_slug || project.slug, type, branch: b, prNumber });
   const id = nanoid();
   const ts = now();
@@ -109,7 +98,6 @@ export function createDeployment(project, { type = 'production', branch, prNumbe
      VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)`
   ).run(id, project.id, type, b, prNumber, project.internal_port, subdomain, trigger, ts, ts);
 
-  // Track preview target.
   if (type === 'preview') {
     const pid = nanoid();
     const kind = prNumber != null ? 'pr' : 'branch';
@@ -126,7 +114,6 @@ export function createDeployment(project, { type = 'production', branch, prNumbe
   return deployment;
 }
 
-// Execute the full pipeline for a queued deployment.
 export async function runPipeline(deploymentId) {
   const deployment = db.prepare(`SELECT * FROM deployments WHERE id = ?`).get(deploymentId);
   if (!deployment) return;
@@ -139,11 +126,8 @@ export async function runPipeline(deploymentId) {
     }
     await ensureNetwork();
 
-    // 1. Clone
     setStatus(deploymentId, 'cloning');
     log(`▶ Cloning ${project.repo_url} @ ${deployment.branch}`);
-    // Clone token precedence: project token → project owner's connected GitHub
-    // account token → global server token.
     const owner = db.prepare('SELECT github_token FROM users WHERE id = ?').get(project.user_id);
     const cloneToken =
       (project.git_token && decryptSecret(project.git_token)) ||
@@ -159,10 +143,8 @@ export async function runPipeline(deploymentId) {
     setStatus(deploymentId, 'cloning', { commit_sha: sha, commit_msg: message });
     log(`✓ Checked out ${sha.slice(0, 8)} — ${message}`);
 
-    // 1b. Auto-import env vars declared in the repo (.env.example etc.).
     importRepoEnv(project.id, dir, log);
 
-    // 2. Resolve build strategy (framework preset → Dockerfile + port)
     const { mode, dockerfile, internalPort: effPort, framework } = resolveBuild(project, dir);
     const internalPort = effPort || project.internal_port;
     log(
@@ -171,13 +153,11 @@ export async function runPipeline(deploymentId) {
       }`
     );
 
-    // 3. Build image
     setStatus(deploymentId, 'building');
     const tag = `mintaz/${project.slug}:${deploymentId.slice(0, 12)}`;
     await buildImage({ contextDir: dir, dockerfile, tag, onLine: log });
     log(`✓ Image built: ${tag}`);
 
-    // 4. Run container
     setStatus(deploymentId, 'deploying', { image_tag: tag });
     const hostPort = await allocateHostPort();
     const containerName = `mintaz_${project.slug}_${deployment.subdomain}`.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 60);
@@ -203,34 +183,25 @@ export async function runPipeline(deploymentId) {
       finished_at: now(),
     });
 
-    // 5. Register container + supersede previous one for this subdomain.
     await supersedeContainers(project.id, deployment.subdomain, deploymentId);
     db.prepare(
       `INSERT INTO containers (id, project_id, deployment_id, docker_id, name, subdomain, host_port, internal_port, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'running', ?)`
     ).run(nanoid(), project.id, deploymentId, containerId, containerName, deployment.subdomain, hostPort, internalPort, now());
 
-    // 6. Update reverse proxy
     log(`▶ Updating reverse proxy → ${deployment.subdomain}.${config.baseDomain} → 127.0.0.1:${hostPort}`);
     await syncProxy();
 
-    // 6b. Ensure Cloudflare DNS for this hostname (custom domain or platform
-    // default *.<zone>). Runs for every deploy so previews resolve too.
     await ensureProjectDns(project, deployment.subdomain, log).catch((e) =>
       log(`! Cloudflare DNS skipped: ${e.message}`)
     );
 
     log(`✅ Live at ${url}`);
 
-    // Record build time for usage tracking.
     recordBuildTime(deploymentId);
 
-    // 7. Attach runtime logs
     attachRuntimeLogs(deploymentId, containerName);
 
-    // Note: the checked-out source is intentionally KEPT while the deployment is
-    // running so the dashboard's Files tab can browse it. It's removed when the
-    // deployment is superseded or stopped (see supersedeContainers / stopDeployment).
   } catch (err) {
     appendLog(deploymentId, `✖ Deployment failed: ${err.message}`, 'system');
     setStatus(deploymentId, 'failed', { error: err.message, finished_at: now() });
@@ -238,7 +209,6 @@ export async function runPipeline(deploymentId) {
   }
 }
 
-// Stop & remove containers that previously served this subdomain (keep history rows).
 async function supersedeContainers(projectId, subdomain, keepDeploymentId) {
   const old = db
     .prepare(
@@ -268,12 +238,11 @@ function attachRuntimeLogs(deploymentId, containerName) {
 function stopRuntimeLogs(deploymentId) {
   const child = runtimeFollowers.get(deploymentId);
   if (child) {
-    try { child.kill(); } catch { /* ignore */ }
+    try { child.kill(); } catch { }
     runtimeFollowers.delete(deploymentId);
   }
 }
 
-// Tear down a single deployment (stop container, remove route).
 export async function stopDeployment(deploymentId) {
   const dep = db.prepare(`SELECT * FROM deployments WHERE id = ?`).get(deploymentId);
   if (!dep) return;
@@ -289,7 +258,6 @@ export async function stopDeployment(deploymentId) {
   await syncProxy();
 }
 
-// Destroy a preview environment (branch or PR).
 export async function destroyPreview(project, { branch, prNumber }) {
   const subdomain = subdomainFor({ slug: project.slug, type: 'preview', branch, prNumber });
   const containers = db
@@ -309,7 +277,6 @@ export async function destroyPreview(project, { branch, prNumber }) {
   return { subdomain, destroyed: containers.length };
 }
 
-// On boot: re-attach runtime log followers and resync the proxy for live deploys.
 export async function resumeOnBoot() {
   const live = db.prepare(`SELECT * FROM deployments WHERE status = 'running'`).all();
   for (const d of live) {

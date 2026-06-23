@@ -4,7 +4,6 @@ import { api, type CfStatus } from '../lib/api';
 import { toast } from '../store/toast';
 import { Spinner } from './ui';
 
-// Settings card: connect Cloudflare via API token + set the tunnel CNAME target.
 export function CloudflareConnect() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<CfStatus | null>(null);

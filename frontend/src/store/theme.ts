@@ -19,7 +19,6 @@ export const useTheme = create<ThemeState>((set, get) => ({
       applyTheme(saved);
       return saved;
     }
-    // Default to dark
     applyTheme('dark');
     return 'dark';
   })(),

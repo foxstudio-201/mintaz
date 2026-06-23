@@ -2,7 +2,7 @@
   "name": "mintaz",
   "version": "1.0.0",
   "private": true,
-  "description": "Self-hosted PaaS — a simplified Vercel + Coolify",
+  "description": "Self-hosted Platform-as-a-Service for Git-based deployments",
   "license": "MIT",
   "workspaces": [
     "backend",

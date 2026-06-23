@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../store/auth';
@@ -185,6 +185,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         >
           {t('nav.signOut')}
         </button>
+        <p className="px-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
+          <Link to="/terms" onClick={onNavigate} className="hover:text-slate-600 dark:hover:text-slate-300">{t('legal.terms')}</Link>
+          {' · '}
+          <Link to="/privacy" onClick={onNavigate} className="hover:text-slate-600 dark:hover:text-slate-300">{t('legal.privacy')}</Link>
+        </p>
       </div>
     </>
   );
@@ -196,12 +201,10 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r p-5 backdrop-blur-xl md:flex bg-white/80 dark:bg-ink-900/40 border-black/[0.06] dark:border-white/[0.06]">
         <SidebarContent />
       </aside>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {menuOpen && (
           <>
@@ -232,9 +235,7 @@ export function Layout() {
         )}
       </AnimatePresence>
 
-      {/* Main */}
       <main className="min-w-0 flex-1">
-        {/* Top bar (mobile) */}
         <header className="glass-strong sticky top-0 z-30 flex items-center justify-between border-b border-black/[0.06] px-4 py-3 dark:border-white/[0.06] md:hidden">
           <div className="flex items-center gap-2.5">
             <MintazLogo className="h-8 w-8" />

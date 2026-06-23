@@ -1,4 +1,3 @@
-// Project CRUD + manual deploy trigger.
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { config, dashUrl } from '../config.js';
@@ -23,7 +22,7 @@ function projectView(p) {
     ...safe,
     preview_enabled: !!p.preview_enabled,
     auto_destroy_pr: !!p.auto_destroy_pr,
-    has_git_token: !!git_token, // never expose the raw token
+    has_git_token: !!git_token,
     production_url: `https://${p.public_slug || p.slug}.${config.baseDomain}`,
     webhook_url: `${dashUrl()}/api/webhooks/github/${p.id}`,
     statusCounts: Object.fromEntries(counts.map((r) => [r.status, r.c])),
@@ -56,7 +55,6 @@ export default async function projectRoutes(fastify) {
     if (!b.name || !b.repo_url) {
       return reply.code(400).send({ error: 'name and repo_url are required' });
     }
-    // Check project quota before creating.
     const quota = checkDeployQuota(request.user.sub);
     if (!quota.allowed) {
       return reply.code(403).send({ error: quota.reason });
@@ -95,7 +93,6 @@ export default async function projectRoutes(fastify) {
       ts
     );
 
-    // Optional env vars on create.
     if (Array.isArray(b.env)) {
       const ins = db.prepare(
         `INSERT INTO env_vars (id, project_id, scope, key, value) VALUES (?, ?, ?, ?, ?)`
@@ -138,8 +135,6 @@ export default async function projectRoutes(fastify) {
         else values.push(b[k]);
       }
     }
-    // git_token: only change when a non-empty value is provided; an explicit
-    // null clears it. Empty string / absent leaves the stored token intact.
     if (typeof b.git_token === 'string' && b.git_token.length) {
       fields.push('git_token = ?');
       values.push(encryptSecret(b.git_token));
@@ -158,14 +153,12 @@ export default async function projectRoutes(fastify) {
   fastify.delete('/:id', async (request, reply) => {
     const p = getOwned(request, reply);
     if (!p) return;
-    // Tear down all live deployments first.
     const live = db.prepare(`SELECT id FROM deployments WHERE project_id = ? AND status = 'running'`).all(p.id);
     for (const d of live) await stopDeployment(d.id);
     db.prepare('DELETE FROM projects WHERE id = ?').run(p.id);
     return { ok: true };
   });
 
-  // Manual deploy / redeploy.
   fastify.post('/:id/deploy', async (request, reply) => {
     const p = getOwned(request, reply);
     if (!p) return;
@@ -180,7 +173,6 @@ export default async function projectRoutes(fastify) {
     return reply.code(202).send({ deployment });
   });
 
-  // Rotate webhook secret.
   fastify.post('/:id/rotate-secret', async (request, reply) => {
     const p = getOwned(request, reply);
     if (!p) return;

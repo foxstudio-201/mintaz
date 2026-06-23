@@ -42,6 +42,19 @@
     "openMenu": "Mở menu",
     "closeMenu": "Đóng menu"
   },
+  "legal": {
+    "terms": "Điều khoản dịch vụ",
+    "privacy": "Chính sách bảo mật",
+    "lastUpdated": "Cập nhật lần cuối: {{date}}",
+    "back": "Quay lại"
+  },
+  "cookie": {
+    "title": "Cookie.",
+    "message": "Chúng tôi dùng bộ nhớ thiết yếu để giữ đăng nhập, và — chỉ khi bạn đồng ý — một cookie phân tích first-party để đo lượng truy cập dashboard. Không quảng cáo, không theo dõi của bên thứ ba.",
+    "learnMore": "Tìm hiểu thêm",
+    "accept": "Đồng ý",
+    "reject": "Từ chối"
+  },
   "auth": {
     "appTagline": "Đăng nhập vào control plane của bạn",
     "email": "Email",

@@ -1,5 +1,3 @@
-// Real Docker execution via the `docker` CLI. Each deployment = one image + one
-// container, published on a host port in the configured range.
 import { createServer } from 'node:net';
 import { spawn } from 'node:child_process';
 import { run, stream } from '../util/sh.js';
@@ -18,17 +16,12 @@ export async function dockerAvailable() {
   }
 }
 
-// Ensure our shared bridge network exists. When DISABLE_INTER_CONTAINER is set
-// we create it with inter-container communication (ICC) disabled so one
-// tenant's container cannot reach another's over the bridge.
 export async function ensureNetwork() {
   try {
     const { stdout } = await run(DOCKER, [
       'network', 'inspect', NETWORK,
       '-f', '{{index .Options "com.docker.network.bridge.enable_icc"}}',
     ]);
-    // Existing network can't be reconfigured in place — warn if it still allows
-    // inter-container traffic so the operator can recreate it when convenient.
     if (config.disableInterContainer && stdout.trim() !== 'false') {
       console.warn(
         `[docker] network "${NETWORK}" still allows inter-container traffic. ` +
@@ -53,7 +46,6 @@ function portIsFree(port) {
   });
 }
 
-// Pick a host port in range that's not in the DB and not bound on the host.
 export async function allocateHostPort() {
   const used = new Set(
     db
@@ -68,11 +60,8 @@ export async function allocateHostPort() {
   throw new Error('no free host ports in configured range');
 }
 
-// Build an image from a context directory, streaming output to onLine.
 export async function buildImage({ contextDir, dockerfile, tag, onLine }) {
   onLine?.(`$ docker build -t ${tag} -f ${dockerfile} .`);
-  // Cap build RAM so a heavy build can't take down the host. (Accepted by both
-  // the classic builder and BuildKit.)
   const args = ['build', '--pull'];
   if (config.buildMemory) args.push('--memory', config.buildMemory);
   args.push('-t', tag, '-f', dockerfile, '.');
@@ -81,7 +70,6 @@ export async function buildImage({ contextDir, dockerfile, tag, onLine }) {
   return tag;
 }
 
-// Run a container, publishing internalPort -> hostPort on 127.0.0.1.
 export async function runContainer({
   tag,
   name,
@@ -97,18 +85,15 @@ export async function runContainer({
   const args = ['run', '-d', '--name', name, '--network', NETWORK];
   args.push('--restart', restartPolicy);
 
-  // ── Resource caps: bound a single tenant container's blast radius. ──
   const c = config.container;
-  args.push('--memory', c.memory, '--memory-swap', c.memory); // RAM cap, no swap
+  args.push('--memory', c.memory, '--memory-swap', c.memory);
   args.push('--cpus', String(c.cpus));
-  args.push('--pids-limit', String(c.pidsLimit)); // anti fork-bomb
+  args.push('--pids-limit', String(c.pidsLimit));
   args.push('--ulimit', `nofile=${c.nofile}:${c.nofile}`);
 
-  // ── Security hardening: block privilege escalation; optionally drop caps. ──
   args.push('--security-opt', 'no-new-privileges');
   if (c.dropCaps) {
     args.push('--cap-drop', 'ALL');
-    // Minimal set a typical web server (incl. nginx static sites) needs to start & bind.
     for (const cap of ['NET_BIND_SERVICE', 'CHOWN', 'SETUID', 'SETGID', 'DAC_OVERRIDE']) {
       args.push('--cap-add', cap);
     }
@@ -125,7 +110,7 @@ export async function runContainer({
 
   onLine?.(`$ docker run -d --name ${name} -p 127.0.0.1:${hostPort}:${internalPort} ${tag}`);
   const { stdout } = await run(DOCKER, args);
-  return stdout.trim(); // container id
+  return stdout.trim();
 }
 
 export async function stopContainer(nameOrId) {
@@ -140,8 +125,6 @@ export async function removeImage(tag) {
   await run(DOCKER, ['rmi', '-f', tag]).catch(() => {});
 }
 
-// Follow runtime logs of a running container; returns the child process so the
-// caller can kill it when the deployment is torn down.
 export function followLogs(nameOrId, onLine, tail = 200) {
   const child = spawn(DOCKER, ['logs', '-f', '--tail', String(tail), nameOrId]);
   const pump = (chunk) => {
@@ -155,7 +138,6 @@ export function followLogs(nameOrId, onLine, tail = 200) {
   return child;
 }
 
-// Inspect whether a container is currently running.
 export async function isRunning(nameOrId) {
   try {
     const { stdout } = await run(DOCKER, ['inspect', '-f', '{{.State.Running}}', nameOrId]);

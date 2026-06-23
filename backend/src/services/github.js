@@ -1,10 +1,8 @@
-// GitHub OAuth + REST helpers (uses global fetch, no dependency).
 import { config, dashUrl } from '../config.js';
 import { getSetting, getSecretSetting } from './settings.js';
 
 const UA = 'Mintaz';
 
-// OAuth App credentials & public URL — DB settings win over .env.
 export function clientId() {
   return getSetting('gh_client_id') || config.githubOAuthClientId;
 }
@@ -23,7 +21,6 @@ export function callbackUrl() {
   return `${publicUrl()}/api/github/callback`;
 }
 
-// Build the GitHub authorize URL the browser is sent to.
 export function authorizeUrl(state) {
   const params = new URLSearchParams({
     client_id: clientId(),
@@ -35,7 +32,6 @@ export function authorizeUrl(state) {
   return `https://github.com/login/oauth/authorize?${params}`;
 }
 
-// Exchange an OAuth code for an access token.
 export async function exchangeCode(code) {
   const res = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
@@ -75,7 +71,6 @@ export async function getUser(token) {
   return { login: u.login, avatar: u.avatar_url, name: u.name };
 }
 
-// List repositories the user can access (a few pages, newest activity first).
 export async function listRepos(token, { maxPages = 4 } = {}) {
   const out = [];
   for (let page = 1; page <= maxPages; page++) {

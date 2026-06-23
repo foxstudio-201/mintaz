@@ -73,7 +73,6 @@ export function FilesTab({ deployment }: { deployment: Deployment | null }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-      {/* Tree / list */}
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center gap-1 border-b border-white/5 px-3 py-2 text-xs text-slate-400">
           {crumbs.map((c, i) => (
@@ -115,7 +114,6 @@ export function FilesTab({ deployment }: { deployment: Deployment | null }) {
         </div>
       </div>
 
-      {/* Viewer */}
       <div className="card overflow-hidden">
         <div className="border-b border-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300">
           {file ? <span className="font-mono text-xs">{file.path}</span> : t('files.selectFile')}

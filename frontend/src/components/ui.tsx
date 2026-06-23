@@ -1,4 +1,3 @@
-// Small reusable UI primitives: status badge, skeletons, spinner, empty state.
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import i18n from '../i18n';

@@ -8,7 +8,6 @@ type AvatarProps = {
   className?: string;
 };
 
-// Default user SVG icon
 function DefaultAvatarSVG({ size, className = '' }: { size: number; className?: string }) {
   return (
     <div
@@ -36,7 +35,6 @@ function DefaultAvatarSVG({ size, className = '' }: { size: number; className?: 
 export function Avatar({ email, githubAvatar, size = 40, className = '' }: AvatarProps) {
   const [gravatarFailed, setGravatarFailed] = useState(false);
 
-  // Priority 1: GitHub avatar
   if (githubAvatar) {
     return (
       <img
@@ -50,7 +48,6 @@ export function Avatar({ email, githubAvatar, size = 40, className = '' }: Avata
     );
   }
 
-  // Priority 2: Gravatar (if not failed)
   if (!gravatarFailed) {
     const gravatarUrl = getGravatarUrl(email, size);
     return (
@@ -66,6 +63,5 @@ export function Avatar({ email, githubAvatar, size = 40, className = '' }: Avata
     );
   }
 
-  // Priority 3: Default SVG
   return <DefaultAvatarSVG size={size} className={className} />;
 }

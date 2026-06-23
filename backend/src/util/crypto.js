@@ -1,5 +1,3 @@
-// Password hashing (scrypt), webhook signature verification, and symmetric
-// secret encryption — no native deps.
 import {
   randomBytes,
   scryptSync,
@@ -29,7 +27,6 @@ export function verifyPassword(password, stored) {
   }
 }
 
-// Verify a GitHub X-Hub-Signature-256 header against the raw body.
 export function verifyGithubSignature(rawBody, signatureHeader, secret) {
   if (!signatureHeader || !secret) return false;
   const expected =
@@ -43,12 +40,6 @@ export function randomSecret(bytes = 24) {
   return randomBytes(bytes).toString('hex');
 }
 
-// ---- Secret encryption (AES-256-GCM) ------------------------------------
-// Used to store third-party tokens (Cloudflare/GitHub PATs, OAuth secret) at
-// rest so a leaked DB file does not expose them. The key is derived once from
-// config.secretKey (SECRET_KEY env, falling back to JWT_SECRET). Values are
-// tagged `enc:v1:` so reads can transparently pass through legacy plaintext
-// rows — they get re-encrypted on the next write.
 const ENC_PREFIX = 'enc:v1:';
 const encKey = scryptSync(String(config.secretKey || ''), 'mintaz-secret-v1', 32);
 
@@ -63,7 +54,7 @@ export function encryptSecret(plain) {
 
 export function decryptSecret(stored) {
   if (!stored || typeof stored !== 'string') return stored;
-  if (!stored.startsWith(ENC_PREFIX)) return stored; // legacy plaintext
+  if (!stored.startsWith(ENC_PREFIX)) return stored;
   const buf = Buffer.from(stored.slice(ENC_PREFIX.length), 'base64');
   const iv = buf.subarray(0, 12);
   const tag = buf.subarray(12, 28);
@@ -73,11 +64,6 @@ export function decryptSecret(stored) {
   return Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
 }
 
-/**
- * Hash IP address for privacy (can't be reversed)
- * @param {string} ip - IP address
- * @returns {string} Hashed IP (first 16 chars of SHA-256)
- */
 export function hashIP(ip) {
   const salt = config.ipHashSalt || 'mintaz-default-salt';
   return createHash('sha256').update(ip + salt).digest('hex').slice(0, 16);

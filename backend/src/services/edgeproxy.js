@@ -1,26 +1,16 @@
-// Built-in edge reverse proxy. Listens on PROXY_HTTP_PORT and routes by Host
-// header to the dashboard API or to a deployment's container — so the whole
-// platform works behind the Cloudflare tunnel WITHOUT installing Caddy/Nginx.
-//
-//   <dash>.<domain>      → API (dashboard + REST + WS)
-//   <domain>             → API
-//   <sub>.<domain>       → the running container serving that subdomain
 import http from 'node:http';
 import net from 'node:net';
 import { db } from '../db/index.js';
 import { config, dashUrl } from '../config.js';
 
-// Map an incoming Host header to a local upstream port (or null = no route).
 function resolveTarget(hostHeader) {
   const host = String(hostHeader || '').split(':')[0].toLowerCase();
   const base = config.baseDomain.toLowerCase();
   if (host !== base && !host.endsWith('.' + base)) return null;
 
   const sub = host === base ? '' : host.slice(0, host.length - base.length - 1);
-  // Dashboard + apex → the API (which also serves the built UI).
   if (sub === '' || sub === config.dashSubdomain) return { port: config.port, name: 'dashboard', isApp: false };
 
-  // App subdomain → newest running container for it.
   const row = db
     .prepare(`SELECT c.host_port, c.deployment_id FROM containers c WHERE c.subdomain = ? AND c.status = 'running' ORDER BY c.created_at DESC LIMIT 1`)
     .get(sub);
@@ -51,24 +41,20 @@ export function startEdgeProxy() {
         const contentType = up.headers['content-type'] || '';
         const isHTML = contentType.includes('text/html');
 
-        // For non-app requests or non-HTML, just pipe through
         if (!t.isApp || !isHTML) {
           res.writeHead(up.statusCode || 502, up.headers);
           up.pipe(res);
           return;
         }
 
-        // For HTML responses from apps, inject tracking script
         let body = '';
         up.setEncoding('utf8');
         up.on('data', (chunk) => { body += chunk; });
         up.on('end', () => {
-          // Inject tracking script before </head>
           const trackerScript = `
 <meta name="mintaz-id" content="${t.deploymentId}" data-api-url="${dashUrl()}">
 <script src="${dashUrl()}/public/tracker.js" defer></script>`;
 
-          // Try to inject before </head>, fallback to before </body>, or append
           if (body.includes('</head>')) {
             body = body.replace('</head>', `${trackerScript}</head>`);
           } else if (body.includes('</body>')) {
@@ -77,7 +63,6 @@ export function startEdgeProxy() {
             body += trackerScript;
           }
 
-          // Update content-length
           const newHeaders = { ...up.headers };
           newHeaders['content-length'] = Buffer.byteLength(body);
 
@@ -93,7 +78,6 @@ export function startEdgeProxy() {
     req.pipe(upstream);
   });
 
-  // WebSocket / Upgrade passthrough.
   server.on('upgrade', (req, socket, head) => {
     const t = resolveTarget(req.headers.host);
     if (!t) return socket.destroy();

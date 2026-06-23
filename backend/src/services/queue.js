@@ -1,5 +1,3 @@
-// Minimal in-process FIFO job queue with limited concurrency. Keeps deploys
-// serialized enough to avoid hammering Docker while still overlapping safely.
 const CONCURRENCY = Number(process.env.DEPLOY_CONCURRENCY || 2);
 
 const jobs = [];

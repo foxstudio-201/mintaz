@@ -8,7 +8,6 @@ import {
   IconDeploy, IconServer, IconTimer, IconStorage,
 } from './icons';
 
-// Project overview: live preview iframe + key facts.
 export function OverviewTab({ project, deployment }: { project: Project; deployment: Deployment | null }) {
   const { t } = useTranslation();
   const [summary, setSummary] = useState<HealthSummary | null>(null);
@@ -30,8 +29,6 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
   const previewUrl = deployment?.url || project.production_url;
   const isRunning = deployment?.status === 'running';
 
-  // Probe whether the public URL actually responds before showing the iframe,
-  // so we render a helpful panel instead of a blank white frame.
   useEffect(() => {
     if (!isRunning) return;
     let alive = true;
@@ -54,7 +51,6 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-      {/* Live preview */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
@@ -88,7 +84,6 @@ export function OverviewTab({ project, deployment }: { project: Project; deploym
         </div>
       </div>
 
-      {/* Facts */}
       <div className="space-y-3">
         <div className="card p-4">
           <div className="mb-3 flex items-center justify-between">

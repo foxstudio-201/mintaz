@@ -1,5 +1,3 @@
-// Avatar helper with Gravatar support
-// MD5 implementation for Gravatar (Gravatar requires MD5 hash of email)
 
 function md5(string: string): string {
   function md5cycle(x: number[], k: number[]) {
@@ -155,24 +153,12 @@ function md5(string: string): string {
   return hex(md51(string));
 }
 
-/**
- * Generate Gravatar URL from email
- * @param email User's email address
- * @param size Avatar size in pixels (default: 80)
- * @returns Gravatar URL (will 404 if no avatar exists)
- */
 export function getGravatarUrl(email: string, size = 80): string {
   const hash = md5(email.trim().toLowerCase());
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`;
 }
 
-/**
- * Get avatar source with fallback priority
- * @param user User object with email and optional github_avatar
- * @returns URL string or null for fallback SVG
- */
 export function getAvatarSource(user: { email: string; github_avatar?: string | null }): string | null {
   if (user.github_avatar) return user.github_avatar;
-  // Return Gravatar URL - component will handle onError fallback
   return getGravatarUrl(user.email);
 }

@@ -1,4 +1,3 @@
-// Thin typed REST client. Token is read from localStorage on each call.
 export type Profile = {
   id: string;
   email: string;
@@ -113,7 +112,6 @@ async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  // auth
   login: (email: string, password: string) =>
     req<{ token: string; user: any }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   register: (email: string, password: string) =>
@@ -127,7 +125,6 @@ export const api = {
   status: () => req<any>('/status'),
   frameworks: () => req<{ frameworks: Framework[] }>('/frameworks'),
 
-  // projects
   listProjects: () => req<{ projects: Project[] }>('/projects'),
   getProject: (id: string) => req<{ project: Project }>(`/projects/${id}`),
   createProject: (body: any) => req<{ project: Project; deployment: Deployment | null }>('/projects', { method: 'POST', body: JSON.stringify(body) }),
@@ -136,12 +133,10 @@ export const api = {
   deploy: (id: string, body: any = {}) => req<{ deployment: Deployment }>(`/projects/${id}/deploy`, { method: 'POST', body: JSON.stringify(body) }),
   rotateSecret: (id: string) => req<{ webhook_secret: string }>(`/projects/${id}/rotate-secret`, { method: 'POST' }),
 
-  // deployments
   deploymentHealth: (id: string, since = 0) => req<{ summary: HealthSummary; checks: HealthCheck[] }>(`/deployments/${id}/health?since=${since}`),
   deploymentFiles: (id: string, path = '') => req<{ path: string; entries: FileEntry[] }>(`/deployments/${id}/files?path=${encodeURIComponent(path)}`),
   deploymentFile: (id: string, path: string) => req<FileContent>(`/deployments/${id}/file?path=${encodeURIComponent(path)}`),
 
-  // cloudflare
   cfStatus: () => req<CfStatus>('/cloudflare/status'),
   cfConnect: (token: string) => req<{ ok: boolean; account: string | null; zones: CfZone[] }>('/cloudflare/connect', { method: 'POST', body: JSON.stringify({ token }) }),
   cfDisconnect: () => req<{ ok: boolean }>('/cloudflare/disconnect', { method: 'POST' }),
@@ -151,7 +146,6 @@ export const api = {
     req<{ ok: boolean; hostname: string; url: string; updated: boolean }>(`/cloudflare/project/${projectId}/domain`, { method: 'POST', body: JSON.stringify({ zone_id, zone_name }) }),
   cfRemoveDomain: (projectId: string) => req<{ ok: boolean }>(`/cloudflare/project/${projectId}/domain`, { method: 'DELETE' }),
 
-  // admin default domain
   adminDefaults: () => req<AdminDefaults>('/admin/defaults'),
   adminDefaultZones: (token?: string) => req<{ zones: CfZone[] }>('/admin/defaults/zones', { method: 'POST', body: JSON.stringify({ token: token || '' }) }),
   adminSaveDefaults: (body: { token?: string; zone_id: string; zone_name: string; tunnel_cname: string }) =>
@@ -165,14 +159,11 @@ export const api = {
   stopDeployment: (id: string) => req<{ ok: boolean }>(`/deployments/${id}/stop`, { method: 'POST' }),
   destroyPreview: (previewId: string) => req<{ ok: boolean }>(`/deployments/preview/${previewId}`, { method: 'DELETE' }),
 
-  // env
   getEnv: (projectId: string) => req<{ env: EnvVar[] }>(`/env/${projectId}`),
   putEnv: (projectId: string, env: EnvVar[]) => req<{ env: EnvVar[] }>(`/env/${projectId}`, { method: 'PUT', body: JSON.stringify({ env }) }),
 
-  // webhooks
   deliveries: (projectId: string) => req<{ deliveries: any[] }>(`/webhooks/deliveries/${projectId}`),
 
-  // github
   githubStatus: () => req<GithubStatus>('/github/status'),
   githubAuthorize: () => req<{ url: string }>('/github/authorize'),
   githubConnectToken: (token: string) => req<{ ok: boolean; login: string }>('/github/connect-token', { method: 'POST', body: JSON.stringify({ token }) }),
@@ -183,11 +174,9 @@ export const api = {
   githubRepos: () => req<{ repos: GithubRepo[] }>('/github/repos'),
   githubBranches: (owner: string, repo: string) => req<{ branches: string[] }>(`/github/repos/${owner}/${repo}/branches`),
 
-  // quotas
   quotasStatus: () => req<QuotaStatusResponse>('/quotas/status'),
   quotasUpdate: (body: Record<string, any>) => req<{ quotas: any }>('/quotas', { method: 'PATCH', body: JSON.stringify(body) }),
 
-  // admin
   adminUsers: () => req<{ users: AdminUser[] }>('/admin/users'),
   adminSuspendUser: (id: string) => req<{ suspended: boolean }>(`/admin/users/${id}/suspend`, { method: 'POST' }),
   adminChangePassword: (id: string, password: string) => req<{ ok: boolean }>(`/admin/users/${id}/password`, { method: 'POST', body: JSON.stringify({ password }) }),
@@ -199,7 +188,6 @@ export const api = {
   adminSaveSettings: (body: { allow_registration: boolean }) =>
     req<{ ok: boolean; allow_registration: boolean }>('/admin/settings', { method: 'POST', body: JSON.stringify(body) }),
 
-  // analytics
   analyticsDeployments: () => req<{ deployments: any[] }>('/analytics/deployments'),
   analyticsSummary: (deploymentId: string, days: number) => req<any>(`/analytics/${deploymentId}/summary?days=${days}`),
   analyticsTimeseries: (deploymentId: string, days: number) => req<{ timeseries: any[] }>(`/analytics/${deploymentId}/timeseries?days=${days}`),

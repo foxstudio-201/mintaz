@@ -38,7 +38,6 @@ export function Analytics() {
   const [devices, setDevices] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load deployments
   useEffect(() => {
     api.analyticsDeployments()
       .then(({ deployments }) => {
@@ -54,7 +53,6 @@ export function Analytics() {
       });
   }, []);
 
-  // Load analytics data when deployment or time range changes
   useEffect(() => {
     if (!selectedDeploy) return;
 
@@ -100,7 +98,6 @@ export function Analytics() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t('analytics.title')}</h1>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
@@ -128,7 +125,6 @@ export function Analytics() {
         </div>
       </div>
 
-      {/* Metrics Cards */}
       {summary && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <MetricCard label={t('analytics.metrics.visitors')} value={summary.visitors.value} change={summary.visitors.change} />
@@ -138,7 +134,6 @@ export function Analytics() {
         </div>
       )}
 
-      {/* Chart */}
       {timeseries.length > 0 && (
         <div className="card p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.visitorsOverTime')}</h3>
@@ -155,7 +150,6 @@ export function Analytics() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Pages */}
         <div className="card p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.pages')}</h3>
           {pages.length > 0 ? (
@@ -172,7 +166,6 @@ export function Analytics() {
           )}
         </div>
 
-        {/* Referrers */}
         <div className="card p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.referrers')}</h3>
           {referrers.length > 0 ? (
@@ -189,7 +182,6 @@ export function Analytics() {
           )}
         </div>
 
-        {/* Countries */}
         <div className="card p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.countries')}</h3>
           {countries.length > 0 ? (
@@ -208,7 +200,6 @@ export function Analytics() {
           )}
         </div>
 
-        {/* Devices */}
         <div className="card p-6">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.devices')}</h3>
           {devices?.devices?.length > 0 ? (

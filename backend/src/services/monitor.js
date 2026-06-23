@@ -1,11 +1,9 @@
-// Periodic health/ping monitor for running deployments. Hits each container's
-// host port and records latency + status into health_checks.
 import { request as httpRequest } from 'node:http';
 import { db } from '../db/index.js';
 
 const INTERVAL_MS = Number(process.env.HEALTH_INTERVAL_MS || 30000);
 const TIMEOUT_MS = 5000;
-const RETENTION = 500; // keep last N checks per deployment
+const RETENTION = 500;
 
 function pingPort(hostPort) {
   return new Promise((resolve) => {
@@ -14,7 +12,7 @@ function pingPort(hostPort) {
       { host: '127.0.0.1', port: hostPort, path: '/', method: 'GET', timeout: TIMEOUT_MS },
       (res) => {
         const latency = Date.now() - started;
-        res.resume(); // drain
+        res.resume();
         resolve({ ok: res.statusCode < 500, status_code: res.statusCode, latency_ms: latency });
       }
     );
@@ -39,7 +37,6 @@ async function tick() {
       `INSERT INTO health_checks (deployment_id, ok, status_code, latency_ms, error, ts)
        VALUES (?, ?, ?, ?, ?, ?)`
     ).run(d.id, r.ok ? 1 : 0, r.status_code ?? null, r.latency_ms ?? null, r.error ?? null, Date.now());
-    // Trim history.
     db.prepare(
       `DELETE FROM health_checks WHERE deployment_id = ? AND id NOT IN
         (SELECT id FROM health_checks WHERE deployment_id = ? ORDER BY id DESC LIMIT ?)`
@@ -51,7 +48,6 @@ let timer = null;
 export function startMonitor() {
   if (timer) return;
   timer = setInterval(() => tick().catch(() => {}), INTERVAL_MS);
-  // Kick one off shortly after boot.
   setTimeout(() => tick().catch(() => {}), 4000);
 }
 

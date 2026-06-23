@@ -1,4 +1,3 @@
-// `npm run db:init` — create schema and seed the admin user from .env.
 import { db, migrate } from './index.js';
 import { config } from '../config.js';
 import { hashPassword } from '../util/crypto.js';

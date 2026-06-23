@@ -27,16 +27,13 @@ export function Account() {
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{t('account.title')}</h1>
 
-      {/* Profile Header */}
       <ProfileHeader profile={profile} />
 
-      {/* Update Profile Form */}
       <UpdateProfileForm profile={profile} onSaved={async () => {
         const updated = await api.getProfile();
         setProfile(updated);
       }} />
 
-      {/* Change Password Form */}
       <ChangePasswordForm />
     </div>
   );

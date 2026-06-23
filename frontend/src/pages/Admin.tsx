@@ -53,10 +53,7 @@ export function Admin() {
   );
 }
 
-/* ─── System Tab ──────────────────────────────────────────────────── */
 
-// Charts show a fixed rolling window (last hour at 1 sample/min) so the line
-// scrolls instead of growing ever longer as history accumulates.
 const CHART_WINDOW = 60;
 
 function SystemTab() {
@@ -73,8 +70,6 @@ function SystemTab() {
 
     loadMetrics();
     loadHistory();
-    // Live gauges (cheap loadavg) refresh often; the history snapshot only
-    // changes once a minute on the server, so poll it far less aggressively.
     const mt = setInterval(loadMetrics, 10000);
     const ht = setInterval(loadHistory, 60000);
     return () => { alive = false; clearInterval(mt); clearInterval(ht); };
@@ -99,7 +94,6 @@ function SystemTab() {
 
   return (
     <div className="space-y-5">
-      {/* Real-time gauges */}
       <div className="grid gap-4 sm:grid-cols-3">
         <GaugeCard icon={<IconCpu className="w-5 h-5" />} label={t('admin.system.cpu')} percent={metrics.cpu.percent}
           detail={t('admin.system.cpuDetail', { cores: metrics.cpu.cores, load: metrics.cpu.loadAvg.join(', ') })} />
@@ -109,7 +103,6 @@ function SystemTab() {
           detail={`${fmtBytes(metrics.disk.used)} / ${fmtBytes(metrics.disk.total)}`} />
       </div>
 
-      {/* Platform + Docker stats */}
       <div className="grid gap-4 sm:grid-cols-4">
         <MiniStat icon={<IconContainer className="w-4 h-4" />} label={t('admin.system.containers')} value={`${metrics.docker.running} / ${metrics.docker.total}`} sub={t('admin.system.runningTotal')} />
         <MiniStat icon={<IconServer className="w-4 h-4" />} label={t('admin.system.deployments')} value={String(metrics.platform.running)} sub={t('admin.system.currentlyRunning')} />
@@ -117,7 +110,6 @@ function SystemTab() {
         <MiniStat icon={<IconRefresh className="w-4 h-4" />} label={t('admin.system.uptime')} value={fmtUptime(metrics.uptime)} sub={t('admin.system.server')} />
       </div>
 
-      {/* Line charts — fixed rolling window so they scroll instead of growing */}
       {recent.length > 2 && (
         <div className="grid gap-4 sm:grid-cols-1">
           <LineChart title={t('admin.system.cpuChart')} data={recent.map((h) => ({ t: h.t, v: h.cpu }))} color="#5b73ff" />
@@ -181,17 +173,13 @@ function LineChart({ title, data, color }: { title: string; data: { t: number; v
         <span className="text-xs font-medium" style={{ color }}>{last.v}%</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 120 }}>
-        {/* Grid lines */}
         {[0.25, 0.5, 0.75].map((f) => (
           <line key={f} x1={PAD} x2={W - PAD} y1={PAD + f * (H - PAD * 2)} y2={PAD + f * (H - PAD * 2)}
             stroke="currentColor" strokeOpacity={0.06} strokeWidth={1} />
         ))}
-        {/* Area fill */}
         <polygon points={areaPoints} fill={color} fillOpacity={0.1} />
-        {/* Line */}
         <polyline points={points.join(' ')} fill="none" stroke={color} strokeWidth={2}
           strokeLinecap="round" strokeLinejoin="round" />
-        {/* Last point dot */}
         <circle cx={points[points.length - 1]?.split(',')[0]} cy={points[points.length - 1]?.split(',')[1]}
           r={3} fill={color} />
       </svg>
@@ -199,7 +187,6 @@ function LineChart({ title, data, color }: { title: string; data: { t: number; v
   );
 }
 
-/* ─── Accounts Tab ────────────────────────────────────────────────── */
 
 function AccountsTab() {
   const { t } = useTranslation();
@@ -228,7 +215,7 @@ function AccountsTab() {
       toast.success(t('admin.accounts.registrationSaved'));
     } catch (e: any) {
       toast.error(e.message);
-      setAllowReg(!next); // revert on failure
+      setAllowReg(!next);
     }
   };
 
@@ -333,7 +320,6 @@ function AccountsTab() {
         </div>
       </div>
 
-      {/* Password modal */}
       {pwdModal && <PasswordModal userId={pwdModal} onClose={() => setPwdModal(null)} onSaved={() => { setPwdModal(null); load(); }} />}
     </div>
   );

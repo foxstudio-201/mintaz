@@ -1,11 +1,8 @@
-// Parse env files from a checked-out repo and import missing keys into a project.
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 
-// Files scanned, in priority order. `.env.example` is the canonical source of
-// "what variables this app needs"; `.env` (rarely committed) is a fallback.
 const CANDIDATES = ['.env.example', '.env.sample', '.env.template', '.env'];
 
 function parseEnv(text) {
@@ -24,7 +21,6 @@ function parseEnv(text) {
   return out;
 }
 
-// Read & merge env candidate files from the checkout dir.
 export function scanRepoEnv(dir) {
   const merged = {};
   for (const name of CANDIDATES) {
@@ -36,14 +32,11 @@ export function scanRepoEnv(dir) {
         if (!(k in merged)) merged[k] = { value: v, source: name };
       }
     } catch {
-      /* ignore unreadable file */
     }
   }
   return merged;
 }
 
-// Import variables found in the repo that the project doesn't already define.
-// Never overwrites existing values (user-set vars win). Returns imported keys.
 export function importRepoEnv(projectId, dir, onLine) {
   const found = scanRepoEnv(dir);
   const keys = Object.keys(found);
@@ -58,8 +51,6 @@ export function importRepoEnv(projectId, dir, onLine) {
   const imported = [];
   for (const k of keys) {
     if (existing.has(k)) continue;
-    // Placeholder-only values (e.g. "your-key-here", "") are imported as blanks
-    // so they show up in the editor for the user to fill in.
     const val = found[k].value;
     ins.run(nanoid(), projectId, 'all', k, val);
     imported.push(k);

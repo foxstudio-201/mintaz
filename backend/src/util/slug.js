@@ -1,4 +1,3 @@
-// Slug + subdomain helpers. DNS labels: a-z, 0-9, hyphen, max 63 chars.
 export function slugify(input, fallback = 'app') {
   const s = String(input || '')
     .toLowerCase()
@@ -9,14 +8,12 @@ export function slugify(input, fallback = 'app') {
   return s || fallback;
 }
 
-// A label safe to use as one DNS segment.
 export function dnsLabel(input, fallback = 'x') {
   return slugify(input, fallback).slice(0, 50);
 }
 
 import { randomBytes } from 'node:crypto';
 
-// A short random, DNS-safe token (lowercase letters + digits).
 export function randomSuffix(len = 5) {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = randomBytes(len);
@@ -25,16 +22,10 @@ export function randomSuffix(len = 5) {
   return out;
 }
 
-// A stable, unique-ish public subdomain base for a project, e.g. "web-7f3a2".
-// Random so projects never collide on the shared default domain.
 export function makePublicSlug(name) {
   return `${slugify(name).slice(0, 18)}-${randomSuffix(5)}`;
 }
 
-// Compute the subdomain for a deployment target.
-//   production:      <slug>
-//   branch preview:  <branch>-<slug>
-//   pr preview:      pr-<n>-<slug>
 export function subdomainFor({ slug, type, branch, prNumber }) {
   if (type === 'production') return slug;
   if (prNumber != null) return `pr-${prNumber}-${slug}`;

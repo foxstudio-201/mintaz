@@ -1,8 +1,3 @@
-// Framework presets — Vercel-style. Each preset describes how to install, build
-// and run a project, and which port the container ends up listening on.
-//
-//   type 'node'   → a long-running Node server (Next.js, Nuxt, Express, …)
-//   type 'static' → build to a folder, served by nginx on :80 (Vite, CRA, …)
 
 export const PRESETS = {
   auto: { label: 'Auto-detect', icon: '🔎', detect: true, type: 'node', port: 3000 },
@@ -24,7 +19,6 @@ export const PRESETS = {
   dockerfile: { label: 'Dockerfile', icon: '🐳', type: 'dockerfile', port: 3000 },
 };
 
-// Public metadata for the UI (no logic, safe to expose).
 export function presetList() {
   return Object.entries(PRESETS).map(([id, p]) => ({
     id,
@@ -44,7 +38,6 @@ export function getPreset(id) {
   return PRESETS[id] || PRESETS.auto;
 }
 
-// Guess a framework from package.json dependencies.
 export function detectFramework(pkg = {}) {
   const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
   const has = (name) => Boolean(deps[name]);
@@ -59,11 +52,9 @@ export function detectFramework(pkg = {}) {
   if (has('vite')) return 'vite';
   if (has('vue')) return 'vue';
   if (pkg.scripts && pkg.scripts.start) return 'node';
-  // No package.json scripts → assume plain static site.
   return Object.keys(deps).length ? 'node' : 'static';
 }
 
-// Translate an `npm …` command to the detected package manager.
 export function translateCmd(cmd, pm) {
   if (!cmd || pm === 'npm') return cmd;
   if (pm === 'yarn') {

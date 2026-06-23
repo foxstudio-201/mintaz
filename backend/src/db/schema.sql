@@ -1,4 +1,3 @@
--- Mintaz — SQLite schema
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
@@ -18,13 +17,13 @@ CREATE TABLE IF NOT EXISTS projects (
   user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name             TEXT NOT NULL,
   slug             TEXT UNIQUE NOT NULL,
-  public_slug      TEXT,                              -- random public subdomain base (default domain)
+  public_slug      TEXT,
   repo_url         TEXT NOT NULL,
-  git_token        TEXT,                              -- PAT for private repos (https)
+  git_token        TEXT,
   branch           TEXT NOT NULL DEFAULT 'main',
-  build_method     TEXT NOT NULL DEFAULT 'auto',     -- auto | dockerfile | framework
-  framework        TEXT NOT NULL DEFAULT 'auto',     -- nextjs | vite | node | static | …
-  output_dir       TEXT,                              -- static build output folder
+  build_method     TEXT NOT NULL DEFAULT 'auto',
+  framework        TEXT NOT NULL DEFAULT 'auto',
+  output_dir       TEXT,
   dockerfile_path  TEXT NOT NULL DEFAULT 'Dockerfile',
   install_command  TEXT,
   build_command    TEXT,
@@ -41,7 +40,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS env_vars (
   id         TEXT PRIMARY KEY,
   project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  scope      TEXT NOT NULL DEFAULT 'all',  -- all | production | preview
+  scope      TEXT NOT NULL DEFAULT 'all',
   key        TEXT NOT NULL,
   value      TEXT NOT NULL,
   UNIQUE(project_id, scope, key)
@@ -50,12 +49,12 @@ CREATE TABLE IF NOT EXISTS env_vars (
 CREATE TABLE IF NOT EXISTS deployments (
   id            TEXT PRIMARY KEY,
   project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  type          TEXT NOT NULL DEFAULT 'production',  -- production | preview
+  type          TEXT NOT NULL DEFAULT 'production',
   branch        TEXT NOT NULL,
   pr_number     INTEGER,
   commit_sha    TEXT,
   commit_msg    TEXT,
-  status        TEXT NOT NULL DEFAULT 'queued',      -- queued|cloning|building|deploying|running|failed|stopped
+  status        TEXT NOT NULL DEFAULT 'queued',
   image_tag     TEXT,
   container_id  TEXT,
   container_name TEXT,
@@ -64,7 +63,7 @@ CREATE TABLE IF NOT EXISTS deployments (
   subdomain     TEXT,
   url           TEXT,
   error         TEXT,
-  trigger       TEXT NOT NULL DEFAULT 'manual',      -- manual | webhook
+  trigger       TEXT NOT NULL DEFAULT 'manual',
   created_at    INTEGER NOT NULL,
   updated_at    INTEGER NOT NULL,
   finished_at   INTEGER
@@ -73,7 +72,6 @@ CREATE TABLE IF NOT EXISTS deployments (
 CREATE INDEX IF NOT EXISTS idx_deploy_project ON deployments(project_id);
 CREATE INDEX IF NOT EXISTS idx_deploy_status  ON deployments(status);
 
--- Tracks the currently-live container per (project, type, subdomain) target.
 CREATE TABLE IF NOT EXISTS containers (
   id            TEXT PRIMARY KEY,
   project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -93,11 +91,11 @@ CREATE TABLE IF NOT EXISTS preview_deployments (
   id            TEXT PRIMARY KEY,
   project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   deployment_id TEXT REFERENCES deployments(id) ON DELETE SET NULL,
-  kind          TEXT NOT NULL DEFAULT 'branch',  -- branch | pr
+  kind          TEXT NOT NULL DEFAULT 'branch',
   branch        TEXT NOT NULL,
   pr_number     INTEGER,
   subdomain     TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'active',  -- active | destroyed
+  status        TEXT NOT NULL DEFAULT 'active',
   created_at    INTEGER NOT NULL,
   updated_at    INTEGER NOT NULL,
   UNIQUE(project_id, subdomain)
@@ -106,7 +104,7 @@ CREATE TABLE IF NOT EXISTS preview_deployments (
 CREATE TABLE IF NOT EXISTS logs (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   deployment_id TEXT NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
-  stream        TEXT NOT NULL DEFAULT 'build',  -- build | runtime | system
+  stream        TEXT NOT NULL DEFAULT 'build',
   line          TEXT NOT NULL,
   ts            INTEGER NOT NULL
 );
@@ -142,7 +140,6 @@ CREATE TABLE IF NOT EXISTS webhooks (
   created_at  INTEGER NOT NULL
 );
 
--- Analytics: Page views tracking
 CREATE TABLE IF NOT EXISTS page_views (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   deployment_id   TEXT NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
@@ -173,7 +170,6 @@ CREATE TABLE IF NOT EXISTS page_views (
 CREATE INDEX IF NOT EXISTS idx_pv_deployment ON page_views(deployment_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_pv_project ON page_views(project_id, timestamp);
 
--- Analytics: Custom events
 CREATE TABLE IF NOT EXISTS custom_events (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   deployment_id TEXT NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
@@ -186,3 +182,20 @@ CREATE TABLE IF NOT EXISTS custom_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_deployment ON custom_events(deployment_id, timestamp);
+
+CREATE TABLE IF NOT EXISTS dashboard_views (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp     INTEGER NOT NULL,
+  path          TEXT NOT NULL,
+  visitor_hash  TEXT,
+  referrer      TEXT,
+  country       TEXT,
+  region        TEXT,
+  city          TEXT,
+  device_type   TEXT,
+  browser       TEXT,
+  os            TEXT,
+  language      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashviews_ts ON dashboard_views(timestamp);
