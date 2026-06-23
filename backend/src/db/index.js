@@ -1,26 +1,33 @@
-import Database from 'better-sqlite3';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from '../config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-mkdirSync(dirname(config.dbPath), { recursive: true });
+const driver = config.dbDriver === 'mysql'
+  ? (await import('./mysql.js')).driver
+  : (await import('./sqlite.js')).driver;
 
-export const db = new Database(config.dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+export const db = driver;
 
-export function migrate() {
-  const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf8');
-  db.exec(schema);
-  const quotasSchema = readFileSync(join(__dirname, 'quotas.sql'), 'utf8');
-  db.exec(quotasSchema);
-  ensureColumns();
+function read(name) {
+  return readFileSync(join(__dirname, name), 'utf8');
 }
 
-function ensureColumns() {
+export async function migrate() {
+  if (driver.kind === 'mysql') {
+    await driver.exec(read('schema.mysql.sql'));
+    await driver.exec(read('quotas.mysql.sql'));
+  } else {
+    await driver.exec(read('schema.sql'));
+    await driver.exec(read('quotas.sql'));
+  }
+  await ensureColumns();
+  await backfillPublicSlugs();
+}
+
+async function ensureColumns() {
   const additions = {
     users: [
       ['name', 'TEXT'],
@@ -48,16 +55,15 @@ function ensureColumns() {
     ],
   };
   for (const [table, cols] of Object.entries(additions)) {
-    const existing = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    const existing = new Set(await driver.columns(table));
     for (const [name, def] of cols) {
-      if (!existing.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
+      if (!existing.has(name)) await driver.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${def}`);
     }
   }
-  backfillPublicSlugs();
 }
 
-function backfillPublicSlugs() {
-  const rows = db.prepare(`SELECT id, slug FROM projects WHERE public_slug IS NULL OR public_slug = ''`).all();
+async function backfillPublicSlugs() {
+  const rows = await db.prepare(`SELECT id, slug FROM projects WHERE public_slug IS NULL OR public_slug = ''`).all();
   if (!rows.length) return;
   const rnd = () => {
     const a = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -66,9 +72,9 @@ function backfillPublicSlugs() {
     return s;
   };
   const upd = db.prepare('UPDATE projects SET public_slug = ? WHERE id = ?');
-  for (const r of rows) upd.run(`${r.slug.slice(0, 18)}-${rnd()}`, r.id);
+  for (const r of rows) await upd.run(`${r.slug.slice(0, 18)}-${rnd()}`, r.id);
 }
 
-migrate();
+await migrate();
 
 export default db;

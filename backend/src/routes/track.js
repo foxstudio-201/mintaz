@@ -35,14 +35,14 @@ export default async function trackRoutes(fastify) {
 
     const ip_hash = hashIP(ip);
 
-    const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
+    const deployment = await db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {
       return reply.code(404).send({ error: 'deployment not found' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO page_views (
-        deployment_id, project_id, timestamp, path, referrer, hostname,
+        deployment_id, project_id, \`timestamp\`, path, referrer, hostname,
         user_agent, ip_hash, country, region, city, device_type,
         browser, browser_version, os, os_version,
         screen_width, screen_height, language,
@@ -87,9 +87,9 @@ export default async function trackRoutes(fastify) {
     const visitor_hash = visitor ? hashIP(String(visitor)) : null;
     const ip_hash = hashIP(ip);
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO dashboard_views (
-        timestamp, path, visitor_hash, ip_hash, referrer, country, region, city,
+        \`timestamp\`, path, visitor_hash, ip_hash, referrer, country, region, city,
         device_type, browser, os, language
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -123,14 +123,14 @@ export default async function trackRoutes(fastify) {
 
     const ip_hash = hashIP(getClientIp(request));
 
-    const deployment = db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
+    const deployment = await db.prepare('SELECT project_id FROM deployments WHERE id = ?').get(deployment_id);
     if (!deployment) {
       return reply.code(404).send({ error: 'deployment not found' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO custom_events (
-        deployment_id, project_id, timestamp, event_name, event_data, path, ip_hash
+        deployment_id, project_id, \`timestamp\`, event_name, event_data, path, ip_hash
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       deployment_id,

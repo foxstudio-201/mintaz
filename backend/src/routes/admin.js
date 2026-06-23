@@ -9,8 +9,8 @@ import os from 'node:os';
 
 const execAsync = promisify(exec);
 
-function requireAdmin(request, reply) {
-  const u = db.prepare('SELECT role FROM users WHERE id = ?').get(request.user.sub);
+async function requireAdmin(request, reply) {
+  const u = await db.prepare('SELECT role FROM users WHERE id = ?').get(request.user.sub);
   if (!u || u.role !== 'admin') {
     reply.code(403).send({ error: 'admin only' });
     return false;
@@ -22,22 +22,22 @@ export default async function adminRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.get('/defaults', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    const zoneName = getSetting('default_zone_name');
-    const tunnel = getSetting('default_tunnel_cname');
-    const hasToken = Boolean(getSetting('default_cf_token'));
+    if (!(await requireAdmin(request, reply))) return;
+    const zoneName = await getSetting('default_zone_name');
+    const tunnel = await getSetting('default_tunnel_cname');
+    const hasToken = Boolean(await getSetting('default_cf_token'));
     return {
-      configured: Boolean(hasToken && getSetting('default_zone_id') && zoneName && tunnel),
+      configured: Boolean(hasToken && (await getSetting('default_zone_id')) && zoneName && tunnel),
       has_token: hasToken,
-      zone_id: getSetting('default_zone_id') || null,
+      zone_id: (await getSetting('default_zone_id')) || null,
       zone_name: zoneName || null,
       tunnel_cname: tunnel || null,
     };
   });
 
   fastify.post('/defaults/zones', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    const token = String(request.body?.token || '').trim() || getSecretSetting('default_cf_token');
+    if (!(await requireAdmin(request, reply))) return;
+    const token = String(request.body?.token || '').trim() || (await getSecretSetting('default_cf_token'));
     if (!token) return reply.code(400).send({ error: 'token required' });
     try {
       const status = await verifyToken(token);
@@ -49,135 +49,136 @@ export default async function adminRoutes(fastify) {
   });
 
   fastify.post('/defaults', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const b = request.body || {};
-    if (typeof b.token === 'string' && b.token.trim()) setSecretSetting('default_cf_token', b.token.trim());
-    if (typeof b.zone_id === 'string') setSetting('default_zone_id', b.zone_id.trim());
-    if (typeof b.zone_name === 'string') setSetting('default_zone_name', b.zone_name.trim());
-    if (typeof b.tunnel_cname === 'string') setSetting('default_tunnel_cname', b.tunnel_cname.trim().replace(/^https?:\/\//, ''));
+    if (typeof b.token === 'string' && b.token.trim()) await setSecretSetting('default_cf_token', b.token.trim());
+    if (typeof b.zone_id === 'string') await setSetting('default_zone_id', b.zone_id.trim());
+    if (typeof b.zone_name === 'string') await setSetting('default_zone_name', b.zone_name.trim());
+    if (typeof b.tunnel_cname === 'string') await setSetting('default_tunnel_cname', b.tunnel_cname.trim().replace(/^https?:\/\//, ''));
     return { ok: true };
   });
 
   fastify.post('/defaults/clear', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    for (const k of ['default_cf_token', 'default_zone_id', 'default_zone_name', 'default_tunnel_cname']) setSetting(k, '');
+    if (!(await requireAdmin(request, reply))) return;
+    for (const k of ['default_cf_token', 'default_zone_id', 'default_zone_name', 'default_tunnel_cname']) await setSetting(k, '');
     return { ok: true };
   });
 
   fastify.get('/settings', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    return { allow_registration: registrationAllowed() };
+    if (!(await requireAdmin(request, reply))) return;
+    return { allow_registration: await registrationAllowed() };
   });
 
   fastify.post('/settings', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const b = request.body || {};
     if (typeof b.allow_registration === 'boolean') {
-      setSetting('allow_registration', String(b.allow_registration));
+      await setSetting('allow_registration', String(b.allow_registration));
     }
-    return { ok: true, allow_registration: registrationAllowed() };
+    return { ok: true, allow_registration: await registrationAllowed() };
   });
 
   fastify.get('/traffic', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const now = Date.now();
     const DAY = 86400000;
     const VKEY = "COALESCE(ip_hash, visitor_hash)";
-    const one = (sql, ...a) => db.prepare(sql).get(...a);
+    const one = async (sql, ...a) => db.prepare(sql).get(...a);
 
-    const totalVisits = one('SELECT COUNT(*) c FROM dashboard_views').c;
-    const uniqueVisitors = one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE ${VKEY} IS NOT NULL`).c;
-    const visits24h = one('SELECT COUNT(*) c FROM dashboard_views WHERE timestamp >= ?', now - DAY).c;
-    const visitors24h = one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE timestamp >= ? AND ${VKEY} IS NOT NULL`, now - DAY).c;
-    const visits7d = one('SELECT COUNT(*) c FROM dashboard_views WHERE timestamp >= ?', now - 7 * DAY).c;
+    const totalVisits = (await one('SELECT COUNT(*) c FROM dashboard_views')).c;
+    const uniqueVisitors = (await one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE ${VKEY} IS NOT NULL`)).c;
+    const visits24h = (await one('SELECT COUNT(*) c FROM dashboard_views WHERE `timestamp` >= ?', now - DAY)).c;
+    const visitors24h = (await one(`SELECT COUNT(DISTINCT ${VKEY}) c FROM dashboard_views WHERE \`timestamp\` >= ? AND ${VKEY} IS NOT NULL`, now - DAY)).c;
+    const visits7d = (await one('SELECT COUNT(*) c FROM dashboard_views WHERE `timestamp` >= ?', now - 7 * DAY)).c;
 
-    const countries = db.prepare(`
+    const countries = await db.prepare(`
       SELECT COALESCE(country, '??') country, COUNT(*) visits, COUNT(DISTINCT ${VKEY}) visitors
       FROM dashboard_views GROUP BY country ORDER BY visits DESC LIMIT 12
     `).all();
 
-    const devices = db.prepare(`
+    const devices = await db.prepare(`
       SELECT COALESCE(device_type, 'unknown') device, COUNT(*) visits
       FROM dashboard_views GROUP BY device_type ORDER BY visits DESC
     `).all();
 
-    const pages = db.prepare(`
+    const pages = await db.prepare(`
       SELECT path, COUNT(*) visits FROM dashboard_views GROUP BY path ORDER BY visits DESC LIMIT 8
     `).all();
 
-    const visitors = db.prepare(`
-      SELECT ${VKEY} id, COUNT(*) visits, MAX(timestamp) last,
+    const visitors = (await db.prepare(`
+      SELECT ${VKEY} id, COUNT(*) visits, MAX(\`timestamp\`) last,
              MAX(country) country, MAX(city) city, MAX(device_type) device, MAX(browser) browser
       FROM dashboard_views WHERE ${VKEY} IS NOT NULL
       GROUP BY ${VKEY} ORDER BY last DESC LIMIT 25
-    `).all().map((v) => ({ ...v, id: String(v.id || '').slice(0, 10) }));
+    `).all()).map((v) => ({ ...v, id: String(v.id || '').slice(0, 10) }));
 
-    const series = db.prepare(`
-      SELECT (timestamp / ?) bucket, COUNT(*) visits, COUNT(DISTINCT ${VKEY}) visitors
-      FROM dashboard_views WHERE timestamp >= ? GROUP BY bucket ORDER BY bucket
-    `).all(DAY, now - 14 * DAY).map((r) => ({ day: r.bucket * DAY, visits: r.visits, visitors: r.visitors }));
+    const series = (await db.prepare(`
+      SELECT (\`timestamp\` / ?) bucket, COUNT(*) visits, COUNT(DISTINCT ${VKEY}) visitors
+      FROM dashboard_views WHERE \`timestamp\` >= ? GROUP BY bucket ORDER BY bucket
+    `).all(DAY, now - 14 * DAY)).map((r) => ({ day: r.bucket * DAY, visits: r.visits, visitors: r.visitors }));
 
     return { totalVisits, uniqueVisitors, visits24h, visitors24h, visits7d, countries, devices, pages, visitors, series };
   });
 
 
   fastify.get('/users', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    const users = db.prepare(
+    if (!(await requireAdmin(request, reply))) return;
+    const users = await db.prepare(
       `SELECT id, email, role, created_at, github_login, github_avatar FROM users ORDER BY created_at DESC`
     ).all();
-    const enriched = users.map((u) => {
-      const projectCount = db.prepare('SELECT COUNT(*) c FROM projects WHERE user_id = ?').get(u.id).c;
-      const deployCount = db.prepare(
+    const enriched = [];
+    for (const u of users) {
+      const projectCount = (await db.prepare('SELECT COUNT(*) c FROM projects WHERE user_id = ?').get(u.id)).c;
+      const deployCount = (await db.prepare(
         `SELECT COUNT(*) c FROM deployments d JOIN projects p ON p.id = d.project_id WHERE p.user_id = ?`
-      ).get(u.id).c;
-      const runningCount = db.prepare(
+      ).get(u.id)).c;
+      const runningCount = (await db.prepare(
         `SELECT COUNT(*) c FROM containers c JOIN projects p ON p.id = c.project_id WHERE p.user_id = ? AND c.status = 'running'`
-      ).get(u.id).c;
-      const suspended = getSetting(`user_suspended_${u.id}`) === '1';
-      return { ...u, projectCount, deployCount, runningCount, suspended };
-    });
+      ).get(u.id)).c;
+      const suspended = (await getSetting(`user_suspended_${u.id}`)) === '1';
+      enriched.push({ ...u, projectCount, deployCount, runningCount, suspended });
+    }
     return { users: enriched };
   });
 
   fastify.post('/users/:id/suspend', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const { id } = request.params;
-    const current = getSetting(`user_suspended_${id}`);
+    const current = await getSetting(`user_suspended_${id}`);
     const newVal = current === '1' ? '0' : '1';
-    setSetting(`user_suspended_${id}`, newVal);
+    await setSetting(`user_suspended_${id}`, newVal);
     return { suspended: newVal === '1' };
   });
 
   fastify.post('/users/:id/password', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const { id } = request.params;
     const { password } = request.body || {};
     if (!password || password.length < 8) return reply.code(400).send({ error: 'password min 8 chars' });
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), id);
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), id);
     return { ok: true };
   });
 
   fastify.delete('/users/:id', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const { id } = request.params;
     if (id === request.user.sub) return reply.code(400).send({ error: 'cannot delete yourself' });
-    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM users WHERE id = ?').run(id);
     return { ok: true };
   });
 
   fastify.post('/users/:id/role', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
     const { id } = request.params;
     const { role } = request.body || {};
     if (!['admin', 'user'].includes(role)) return reply.code(400).send({ error: 'role must be admin or user' });
-    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
+    await db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
     return { ok: true };
   });
 
 
   fastify.get('/system', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
+    if (!(await requireAdmin(request, reply))) return;
 
     const loadAvg = os.loadavg();
     const cpuCores = os.cpus().length;
@@ -210,10 +211,10 @@ export default async function adminRoutes(fastify) {
       dockerContainers.stopped = dockerContainers.total - dockerContainers.running;
     }
 
-    const totalUsers = db.prepare('SELECT COUNT(*) c FROM users').get().c;
-    const totalProjects = db.prepare('SELECT COUNT(*) c FROM projects').get().c;
-    const totalDeployments = db.prepare('SELECT COUNT(*) c FROM deployments').get().c;
-    const runningDeployments = db.prepare("SELECT COUNT(*) c FROM deployments WHERE status = 'running'").get().c;
+    const totalUsers = (await db.prepare('SELECT COUNT(*) c FROM users').get()).c;
+    const totalProjects = (await db.prepare('SELECT COUNT(*) c FROM projects').get()).c;
+    const totalDeployments = (await db.prepare('SELECT COUNT(*) c FROM deployments').get()).c;
+    const runningDeployments = (await db.prepare("SELECT COUNT(*) c FROM deployments WHERE status = 'running'").get()).c;
 
     const uptime = Math.round(os.uptime());
 
@@ -228,8 +229,8 @@ export default async function adminRoutes(fastify) {
   });
 
   fastify.get('/system/history', async (request, reply) => {
-    if (!requireAdmin(request, reply)) return;
-    const raw = getSetting('system_metrics_history');
+    if (!(await requireAdmin(request, reply))) return;
+    const raw = await getSetting('system_metrics_history');
     const history = raw ? JSON.parse(raw) : [];
     return { history };
   });

@@ -5,8 +5,8 @@ import { hashPassword, verifyPassword } from '../util/crypto.js';
 import { ipRateLimit } from '../util/ratelimit.js';
 import { getSetting } from '../services/settings.js';
 
-export function registrationAllowed() {
-  const s = getSetting('allow_registration');
+export async function registrationAllowed() {
+  const s = await getSetting('allow_registration');
   if (s === 'true') return true;
   if (s === 'false') return false;
   return config.allowRegistration;
@@ -22,17 +22,17 @@ export default async function authRoutes(fastify) {
     if (!email || !password || password.length < 8) {
       return reply.code(400).send({ error: 'email and password (min 8 chars) required' });
     }
-    const isFirst = db.prepare('SELECT COUNT(*) c FROM users').get().c === 0;
-    if (!isFirst && !registrationAllowed()) {
+    const isFirst = (await db.prepare('SELECT COUNT(*) c FROM users').get()).c === 0;
+    if (!isFirst && !(await registrationAllowed())) {
       return reply.code(403).send({ error: 'registration is disabled' });
     }
-    const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const exists = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (exists) return reply.code(409).send({ error: 'email already registered' });
 
     const role = isFirst ? 'admin' : 'user';
 
     const id = nanoid();
-    db.prepare(
+    await db.prepare(
       `INSERT INTO users (id, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)`
     ).run(id, email, hashPassword(password), role, Date.now());
 
@@ -42,7 +42,7 @@ export default async function authRoutes(fastify) {
 
   fastify.post('/login', { preHandler: loginLimit }, async (request, reply) => {
     const { email, password } = request.body || {};
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email || '');
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email || '');
     if (!user || !verifyPassword(password || '', user.password_hash)) {
       return reply.code(401).send({ error: 'invalid credentials' });
     }
@@ -51,12 +51,12 @@ export default async function authRoutes(fastify) {
   });
 
   fastify.get('/me', { onRequest: [fastify.authenticate] }, async (request) => {
-    const user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(request.user.sub);
+    const user = await db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(request.user.sub);
     return { user };
   });
 
   fastify.get('/profile', { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    const user = db.prepare(
+    const user = await db.prepare(
       `SELECT id, email, name, role, created_at, github_login, github_avatar, cf_token, cf_account
        FROM users WHERE id = ?`
     ).get(request.user.sub);
@@ -76,11 +76,11 @@ export default async function authRoutes(fastify) {
       return reply.code(400).send({ error: 'name must be 100 characters or less' });
     }
 
-    const currentUser = db.prepare('SELECT email FROM users WHERE id = ?').get(userId);
+    const currentUser = await db.prepare('SELECT email FROM users WHERE id = ?').get(userId);
     if (!currentUser) return reply.code(404).send({ error: 'user not found' });
 
     if (email && email !== currentUser.email) {
-      const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
+      const existing = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
       if (existing) return reply.code(400).send({ error: 'email already in use' });
     }
 
@@ -101,7 +101,7 @@ export default async function authRoutes(fastify) {
     }
 
     values.push(userId);
-    db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+    await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
     return { ok: true };
   });
@@ -117,14 +117,14 @@ export default async function authRoutes(fastify) {
     }
 
     const userId = request.user.sub;
-    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId);
+    const user = await db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId);
     if (!user) return reply.code(404).send({ error: 'user not found' });
 
     if (!verifyPassword(currentPassword, user.password_hash)) {
       return reply.code(400).send({ error: 'current password is incorrect' });
     }
 
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), userId);
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), userId);
 
     return { ok: true };
   });

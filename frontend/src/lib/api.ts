@@ -196,6 +196,7 @@ export const api = {
   analyticsReferrers: (deploymentId: string, days: number) => req<{ referrers: any[] }>(`/analytics/${deploymentId}/referrers?days=${days}`),
   analyticsCountries: (deploymentId: string, days: number) => req<{ countries: any[] }>(`/analytics/${deploymentId}/countries?days=${days}`),
   analyticsDevices: (deploymentId: string, days: number) => req<any>(`/analytics/${deploymentId}/devices?days=${days}`),
+  analyticsVisitors: (deploymentId: string, days: number) => req<{ visitors: any[] }>(`/analytics/${deploymentId}/visitors?days=${days}`),
   analyticsEvents: (deploymentId: string, days: number) => req<{ events: any[] }>(`/analytics/${deploymentId}/events?days=${days}`),
 };
 

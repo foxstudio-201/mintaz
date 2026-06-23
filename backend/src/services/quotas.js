@@ -21,17 +21,17 @@ function monthStartTs(month) {
   return new Date((month || currentMonth()) + '-01T00:00:00Z').getTime();
 }
 
-export function ensureQuotas(userId) {
-  db.prepare('INSERT OR IGNORE INTO user_quotas (user_id) VALUES (?)').run(userId);
+export async function ensureQuotas(userId) {
+  await db.prepare('INSERT OR IGNORE INTO user_quotas (user_id) VALUES (?)').run(userId);
 }
 
-export function getQuotas(userId) {
-  ensureQuotas(userId);
+export async function getQuotas(userId) {
+  await ensureQuotas(userId);
   return db.prepare('SELECT * FROM user_quotas WHERE user_id = ?').get(userId);
 }
 
-export function updateQuotas(userId, updates) {
-  ensureQuotas(userId);
+export async function updateQuotas(userId, updates) {
+  await ensureQuotas(userId);
   const fields = [];
   const values = [];
   for (const [key, val] of Object.entries(updates)) {
@@ -42,17 +42,17 @@ export function updateQuotas(userId, updates) {
   }
   if (fields.length) {
     values.push(userId);
-    db.prepare(`UPDATE user_quotas SET ${fields.join(', ')} WHERE user_id = ?`).run(...values);
+    await db.prepare(`UPDATE user_quotas SET ${fields.join(', ')} WHERE user_id = ?`).run(...values);
   }
   return getQuotas(userId);
 }
 
-function computeStorageGb(userId) {
+async function computeStorageGb(userId) {
   try {
-    const projects = db.prepare('SELECT id FROM projects WHERE user_id = ?').all(userId);
+    const projects = await db.prepare('SELECT id FROM projects WHERE user_id = ?').all(userId);
     let totalBytes = 0;
     for (const p of projects) {
-      const deps = db.prepare('SELECT id FROM deployments WHERE project_id = ?').all(p.id);
+      const deps = await db.prepare('SELECT id FROM deployments WHERE project_id = ?').all(p.id);
       for (const d of deps) {
         try {
           const dir = `${config.workDir}/builds/${d.id}`;
@@ -67,30 +67,30 @@ function computeStorageGb(userId) {
   }
 }
 
-export function computeUsage(userId) {
-  const quotas = getQuotas(userId);
+export async function computeUsage(userId) {
+  const quotas = await getQuotas(userId);
   const month = currentMonth();
   const mStart = monthStartTs(month);
 
-  const usage = db.prepare('SELECT * FROM usage_records WHERE user_id = ? AND month = ?').get(userId, month) || {
+  const usage = (await db.prepare('SELECT * FROM usage_records WHERE user_id = ? AND month = ?').get(userId, month)) || {
     cpu_seconds: 0, memory_bytes_seconds: 0, bandwidth_bytes: 0, build_seconds: 0,
   };
 
-  const projects = db.prepare('SELECT COUNT(*) c FROM projects WHERE user_id = ?').get(userId).c;
+  const projects = (await db.prepare('SELECT COUNT(*) c FROM projects WHERE user_id = ?').get(userId)).c;
 
-  const deploymentsMo = db.prepare(
+  const deploymentsMo = (await db.prepare(
     `SELECT COUNT(*) c FROM deployments d
      JOIN projects p ON p.id = d.project_id
      WHERE p.user_id = ? AND d.created_at >= ?`
-  ).get(userId, mStart).c;
+  ).get(userId, mStart)).c;
 
-  const running = db.prepare(
+  const running = (await db.prepare(
     `SELECT COUNT(*) c FROM containers c
      JOIN projects p ON p.id = c.project_id
      WHERE p.user_id = ? AND c.status = 'running'`
-  ).get(userId).c;
+  ).get(userId)).c;
 
-  const storageGb = computeStorageGb(userId);
+  const storageGb = await computeStorageGb(userId);
 
   return {
     projects:                  { used: projects, soft: Math.floor(quotas.max_projects * 0.8), limit: quotas.max_projects },
@@ -104,8 +104,8 @@ export function computeUsage(userId) {
   };
 }
 
-export function checkDeployQuota(userId) {
-  const usage = computeUsage(userId);
+export async function checkDeployQuota(userId) {
+  const usage = await computeUsage(userId);
   const SOFT_THRESHOLD = 0.8;
 
   const hardChecks = [

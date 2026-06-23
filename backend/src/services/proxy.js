@@ -7,15 +7,18 @@ import { config } from '../config.js';
 
 const pexec = promisify(exec);
 
-function liveRoutes() {
+async function liveRoutes() {
   return db
     .prepare(
-      `SELECT subdomain, host_port
-       FROM containers
-       WHERE status = 'running'
-       GROUP BY subdomain
-       HAVING created_at = MAX(created_at)
-       ORDER BY subdomain`
+      `SELECT c.subdomain, c.host_port
+       FROM containers c
+       JOIN (
+         SELECT subdomain, MAX(created_at) AS mc
+         FROM containers WHERE status = 'running'
+         GROUP BY subdomain
+       ) m ON m.subdomain = c.subdomain AND m.mc = c.created_at
+       WHERE c.status = 'running'
+       ORDER BY c.subdomain`
     )
     .all();
 }
@@ -63,7 +66,7 @@ export async function syncProxy() {
   }
   running = true;
   try {
-    const routes = liveRoutes();
+    const routes = await liveRoutes();
     if (config.proxy === 'nginx') {
       await writeSnippet(config.nginxSnippet, renderNginx(routes));
       await reload(config.nginxReloadCmd);

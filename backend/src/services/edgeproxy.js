@@ -3,7 +3,7 @@ import net from 'node:net';
 import { db } from '../db/index.js';
 import { config, dashUrl } from '../config.js';
 
-function resolveTarget(hostHeader) {
+async function resolveTarget(hostHeader) {
   const host = String(hostHeader || '').split(':')[0].toLowerCase();
   const base = config.baseDomain.toLowerCase();
   if (host !== base && !host.endsWith('.' + base)) return null;
@@ -11,7 +11,7 @@ function resolveTarget(hostHeader) {
   const sub = host === base ? '' : host.slice(0, host.length - base.length - 1);
   if (sub === '' || sub === config.dashSubdomain) return { port: config.port, name: 'dashboard', isApp: false };
 
-  const row = db
+  const row = await db
     .prepare(`SELECT c.host_port, c.deployment_id FROM containers c WHERE c.subdomain = ? AND c.status = 'running' ORDER BY c.created_at DESC LIMIT 1`)
     .get(sub);
   if (row?.host_port) return { port: row.host_port, name: sub, isApp: true, deploymentId: row.deployment_id };
@@ -31,8 +31,8 @@ function badGateway(res, host) {
 export function startEdgeProxy() {
   const port = config.proxyHttpPort;
 
-  const server = http.createServer((req, res) => {
-    const t = resolveTarget(req.headers.host);
+  const server = http.createServer(async (req, res) => {
+    const t = await resolveTarget(req.headers.host);
     if (!t) return badGateway(res, req.headers.host);
 
     const upstream = http.request(
@@ -78,8 +78,8 @@ export function startEdgeProxy() {
     req.pipe(upstream);
   });
 
-  server.on('upgrade', (req, socket, head) => {
-    const t = resolveTarget(req.headers.host);
+  server.on('upgrade', async (req, socket, head) => {
+    const t = await resolveTarget(req.headers.host);
     if (!t) return socket.destroy();
     const up = net.connect(t.port, '127.0.0.1', () => {
       const headerLines = Object.entries(req.headers).map(([k, v]) => `${k}: ${v}`);

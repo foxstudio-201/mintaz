@@ -6,7 +6,27 @@ import { getSetting, setSetting } from './settings.js';
 
 const POLL_INTERVAL_MS = Number(process.env.USAGE_POLL_INTERVAL_MS || 60000);
 
-function collectDockerStats() {
+const UPSERT_CPU_MEM = db.kind === 'mysql'
+  ? `INSERT INTO usage_records (user_id, month, cpu_seconds, memory_bytes_seconds)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       cpu_seconds = cpu_seconds + VALUES(cpu_seconds),
+       memory_bytes_seconds = memory_bytes_seconds + VALUES(memory_bytes_seconds)`
+  : `INSERT INTO usage_records (user_id, month, cpu_seconds, memory_bytes_seconds)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(user_id, month) DO UPDATE SET
+       cpu_seconds = cpu_seconds + excluded.cpu_seconds,
+       memory_bytes_seconds = memory_bytes_seconds + excluded.memory_bytes_seconds`;
+
+const UPSERT_BUILD = db.kind === 'mysql'
+  ? `INSERT INTO usage_records (user_id, month, build_seconds)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE build_seconds = build_seconds + VALUES(build_seconds)`
+  : `INSERT INTO usage_records (user_id, month, build_seconds)
+     VALUES (?, ?, ?)
+     ON CONFLICT(user_id, month) DO UPDATE SET build_seconds = build_seconds + excluded.build_seconds`;
+
+async function collectDockerStats() {
   let stdout;
   try {
     stdout = execSync(
@@ -27,7 +47,7 @@ function collectDockerStats() {
     if (parts.length < 3) continue;
     const [dockerIdShort, cpuPerc, memUsage] = parts;
 
-    const container = db.prepare(
+    const container = await db.prepare(
       `SELECT c.*, p.user_id FROM containers c
        JOIN projects p ON p.id = c.project_id
        WHERE (c.docker_id LIKE ? OR c.docker_id = ?) AND c.status = 'running'
@@ -52,21 +72,15 @@ function collectDockerStats() {
     acc.set(container.user_id, cur);
   }
 
-  const stmt = db.prepare(
-    `INSERT INTO usage_records (user_id, month, cpu_seconds, memory_bytes_seconds)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(user_id, month) DO UPDATE SET
-       cpu_seconds = cpu_seconds + excluded.cpu_seconds,
-       memory_bytes_seconds = memory_bytes_seconds + excluded.memory_bytes_seconds`
-  );
+  const stmt = db.prepare(UPSERT_CPU_MEM);
 
   for (const [userId, vals] of acc) {
-    stmt.run(userId, month, vals.cpuSeconds, vals.memBytesSeconds);
+    await stmt.run(userId, month, vals.cpuSeconds, vals.memBytesSeconds);
   }
 }
 
-export function recordBuildTime(deploymentId) {
-  const dep = db.prepare(
+export async function recordBuildTime(deploymentId) {
+  const dep = await db.prepare(
     `SELECT d.*, p.user_id FROM deployments d
      JOIN projects p ON p.id = d.project_id
      WHERE d.id = ?`
@@ -76,15 +90,10 @@ export function recordBuildTime(deploymentId) {
   const buildSeconds = Math.max(0, (dep.finished_at - dep.created_at) / 1000);
   const month = currentMonth();
 
-  db.prepare(
-    `INSERT INTO usage_records (user_id, month, build_seconds)
-     VALUES (?, ?, ?)
-     ON CONFLICT(user_id, month) DO UPDATE SET
-       build_seconds = build_seconds + excluded.build_seconds`
-  ).run(dep.user_id, month, buildSeconds);
+  await db.prepare(UPSERT_BUILD).run(dep.user_id, month, buildSeconds);
 }
 
-function collectSystemMetrics() {
+async function collectSystemMetrics() {
   const loadAvg = os.loadavg();
   const cpuCores = os.cpus().length;
   const cpuPercent = Math.round((loadAvg[0] / cpuCores) * 100);
@@ -103,24 +112,24 @@ function collectSystemMetrics() {
   } catch { }
 
   const point = { t: Date.now(), cpu: cpuPercent, ram: memPercent, disk: diskPercent };
-  const raw = getSetting('system_metrics_history');
+  const raw = await getSetting('system_metrics_history');
   const history = raw ? JSON.parse(raw) : [];
   history.push(point);
   if (history.length > 360) history.splice(0, history.length - 360);
-  setSetting('system_metrics_history', JSON.stringify(history));
+  await setSetting('system_metrics_history', JSON.stringify(history));
 }
 
 let timer = null;
 export function startUsageMonitor() {
   if (timer) return;
-  timer = setInterval(() => {
-    try { collectDockerStats(); } catch (e) { console.error('Usage monitor error:', e.message); }
+  timer = setInterval(async () => {
+    try { await collectDockerStats(); } catch (e) { console.error('Usage monitor error:', e.message); }
   }, POLL_INTERVAL_MS);
-  setInterval(() => {
-    try { collectSystemMetrics(); } catch { }
+  setInterval(async () => {
+    try { await collectSystemMetrics(); } catch { }
   }, 60000);
-  setTimeout(() => {
-    try { collectDockerStats(); } catch { }
-    try { collectSystemMetrics(); } catch { }
+  setTimeout(async () => {
+    try { await collectDockerStats(); } catch { }
+    try { await collectSystemMetrics(); } catch { }
   }, 10000);
 }

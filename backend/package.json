@@ -20,6 +20,8 @@
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "geoip-lite": "^2.0.3",
+    "ioredis": "^5.11.1",
+    "mysql2": "^3.22.5",
     "nanoid": "^5.0.7",
     "ua-parser-js": "^2.0.10"
   },

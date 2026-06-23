@@ -28,16 +28,16 @@ function pingPort(hostPort) {
 }
 
 async function tick() {
-  const running = db
+  const running = await db
     .prepare(`SELECT id, host_port FROM deployments WHERE status = 'running' AND host_port IS NOT NULL`)
     .all();
   for (const d of running) {
     const r = await pingPort(d.host_port);
-    db.prepare(
+    await db.prepare(
       `INSERT INTO health_checks (deployment_id, ok, status_code, latency_ms, error, ts)
        VALUES (?, ?, ?, ?, ?, ?)`
     ).run(d.id, r.ok ? 1 : 0, r.status_code ?? null, r.latency_ms ?? null, r.error ?? null, Date.now());
-    db.prepare(
+    await db.prepare(
       `DELETE FROM health_checks WHERE deployment_id = ? AND id NOT IN
         (SELECT id FROM health_checks WHERE deployment_id = ? ORDER BY id DESC LIMIT ?)`
     ).run(d.id, d.id, RETENTION);
@@ -47,12 +47,12 @@ async function tick() {
 let timer = null;
 export function startMonitor() {
   if (timer) return;
-  timer = setInterval(() => tick().catch(() => {}), INTERVAL_MS);
-  setTimeout(() => tick().catch(() => {}), 4000);
+  timer = setInterval(async () => { await tick().catch(() => {}); }, INTERVAL_MS);
+  setTimeout(async () => { await tick().catch(() => {}); }, 4000);
 }
 
-export function getHealth(deploymentId, { sinceId = 0, limit = 200 } = {}) {
-  return db
+export async function getHealth(deploymentId, { sinceId = 0, limit = 200 } = {}) {
+  return await db
     .prepare(
       `SELECT id, ok, status_code, latency_ms, error, ts FROM health_checks
        WHERE deployment_id = ? AND id > ? ORDER BY id DESC LIMIT ?`
@@ -60,8 +60,8 @@ export function getHealth(deploymentId, { sinceId = 0, limit = 200 } = {}) {
     .all(deploymentId, sinceId, limit);
 }
 
-export function healthSummary(deploymentId) {
-  const row = db
+export async function healthSummary(deploymentId) {
+  const row = await db
     .prepare(
       `SELECT COUNT(*) total,
               SUM(ok) up,
@@ -70,7 +70,7 @@ export function healthSummary(deploymentId) {
        FROM health_checks WHERE deployment_id = ?`
     )
     .get(deploymentId);
-  const last = db
+  const last = await db
     .prepare(`SELECT ok, status_code, latency_ms, error, ts FROM health_checks WHERE deployment_id = ? ORDER BY id DESC LIMIT 1`)
     .get(deploymentId);
   const total = row?.total || 0;

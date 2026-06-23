@@ -2,7 +2,7 @@ import { db } from '../db/index.js';
 import { getLogs, subscribeLogs } from '../services/logs.js';
 
 export default async function wsRoutes(fastify) {
-  fastify.get('/logs/:deploymentId', { websocket: true }, (socket, request) => {
+  fastify.get('/logs/:deploymentId', { websocket: true }, async (socket, request) => {
     const { deploymentId } = request.params;
 
     const token = request.query.token;
@@ -15,8 +15,8 @@ export default async function wsRoutes(fastify) {
       return;
     }
 
-    const dep = db.prepare('SELECT * FROM deployments WHERE id = ?').get(deploymentId);
-    const proj = dep && db.prepare('SELECT user_id FROM projects WHERE id = ?').get(dep.project_id);
+    const dep = await db.prepare('SELECT * FROM deployments WHERE id = ?').get(deploymentId);
+    const proj = dep && await db.prepare('SELECT user_id FROM projects WHERE id = ?').get(dep.project_id);
     if (!dep || !proj || proj.user_id !== userId) {
       socket.send(JSON.stringify({ type: 'error', error: 'not found' }));
       socket.close();
@@ -28,7 +28,7 @@ export default async function wsRoutes(fastify) {
     };
 
     const since = Number(request.query.since) || 0;
-    const history = getLogs(deploymentId, { sinceId: since });
+    const history = await getLogs(deploymentId, { sinceId: since });
     let lastId = since;
     for (const row of history) {
       send({ type: 'log', ...row });
@@ -36,13 +36,13 @@ export default async function wsRoutes(fastify) {
     }
     send({ type: 'snapshot', status: dep.status });
 
-    const unsub = subscribeLogs(deploymentId, (entry) => {
+    const unsub = await subscribeLogs(deploymentId, (entry) => {
       send({ type: 'log', stream: entry.stream, line: entry.line, ts: entry.ts });
     });
 
     let lastStatus = dep.status;
-    const statusTimer = setInterval(() => {
-      const cur = db.prepare('SELECT status FROM deployments WHERE id = ?').get(deploymentId);
+    const statusTimer = setInterval(async () => {
+      const cur = await db.prepare('SELECT status FROM deployments WHERE id = ?').get(deploymentId);
       if (cur && cur.status !== lastStatus) {
         lastStatus = cur.status;
         send({ type: 'status', status: cur.status });

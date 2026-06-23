@@ -3,18 +3,18 @@ import { config } from '../config.js';
 import { hashPassword } from '../util/crypto.js';
 import { nanoid } from 'nanoid';
 
-migrate();
+await migrate();
 
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(config.adminEmail);
+const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(config.adminEmail);
 if (existing) {
   console.log(`[db:init] admin user already exists: ${config.adminEmail}`);
 } else {
-  db.prepare(
+  await db.prepare(
     `INSERT INTO users (id, email, password_hash, role, created_at)
      VALUES (?, ?, ?, 'admin', ?)`
   ).run(nanoid(), config.adminEmail, hashPassword(config.adminPassword), Date.now());
   console.log(`[db:init] seeded admin user: ${config.adminEmail}`);
 }
 
-console.log(`[db:init] database ready at ${config.dbPath}`);
+console.log(`[db:init] database ready`);
 process.exit(0);

@@ -554,6 +554,14 @@
     "referrers": "Referrers",
     "countries": "Countries",
     "devices": "Devices",
-    "noData_short": "No data"
+    "noData_short": "No data",
+    "unknownCountry": "Unknown",
+    "visitorsShort": "visitors",
+    "visitorsByIp": "Visitors (by IP)",
+    "ipLabel": "Visitor",
+    "location": "Location",
+    "device": "Device",
+    "views": "Views",
+    "lastSeen": "Last seen"
   }
 }

@@ -152,11 +152,26 @@ run_wizard() {
 
   ADMIN_EMAIL="$(ask 'Admin email' 'admin@'"$BASE_DOMAIN")"
   while :; do
-    ADMIN_PASS="$(ask_secret 'Admin password (min 6 chars)')"
-    [ "${#ADMIN_PASS}" -ge 6 ] && break || warn 'Too short.'
+    ADMIN_PASS="$(ask_secret 'Admin password (min 8 chars)')"
+    [ "${#ADMIN_PASS}" -ge 8 ] && break || warn 'Too short.'
   done
 
   if ask_yn 'Use Caddy as the reverse proxy? (No = Nginx)' 'y'; then PROXY=caddy; else PROXY=nginx; fi
+
+  DB_DRIVER=sqlite; DB_HOST=127.0.0.1; DB_PORT=3306; DB_NAME=mintaz; DB_USER=mintaz; DB_PASSWORD=""
+  if ask_yn 'Use MariaDB/MySQL instead of SQLite? (recommended for multi-instance)' 'n'; then
+    DB_DRIVER=mysql
+    DB_HOST="$(ask 'Database host' '127.0.0.1')"
+    DB_PORT="$(ask 'Database port' '3306')"
+    DB_NAME="$(ask 'Database name' 'mintaz')"
+    DB_USER="$(ask 'Database user' 'mintaz')"
+    DB_PASSWORD="$(ask_secret 'Database password')"
+  fi
+
+  REDIS_URL=""
+  if ask_yn 'Enable Redis (shared rate-limit + cache across instances)?' 'n'; then
+    REDIS_URL="$(ask 'Redis URL' 'redis://127.0.0.1:6379')"
+  fi
 
   GITHUB_SECRET="$(ask 'Default GitHub webhook secret (blank = random)' '')"
   [ -z "$GITHUB_SECRET" ] && GITHUB_SECRET="$(rand 24)"
@@ -178,6 +193,8 @@ run_wizard() {
   echo -e "  Base domain     : ${c_grn}${BASE_DOMAIN}${c_reset}"
   echo -e "  Dashboard       : ${c_grn}https://${DASH_DOMAIN}${c_reset}"
   echo -e "  Reverse proxy   : ${c_grn}${PROXY}${c_reset}"
+  echo -e "  Database        : ${c_grn}$([ "$DB_DRIVER" = mysql ] && echo "MariaDB/MySQL ($DB_USER@$DB_HOST:$DB_PORT/$DB_NAME)" || echo "SQLite")${c_reset}"
+  echo -e "  Redis           : ${c_grn}$([ -n "$REDIS_URL" ] && echo "$REDIS_URL" || echo "off (in-memory)")${c_reset}"
   echo -e "  Admin           : ${c_grn}${ADMIN_EMAIL}${c_reset}"
   echo -e "  Cloudflare tun. : ${c_grn}$([ "$SETUP_TUNNEL" = y ] && echo "yes ($TUNNEL_NAME)" || echo "manual/skip")${c_reset}"
   hr
@@ -202,7 +219,13 @@ DATA_DIR=./data
 WORK_DIR=./workdir
 DB_PATH=./data/mintaz.sqlite
 STATIC_DIR=../frontend/dist
-DB_DRIVER=sqlite
+DB_DRIVER=$DB_DRIVER
+DB_HOST=$DB_HOST
+DB_PORT=$DB_PORT
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+REDIS_URL=$REDIS_URL
 DOCKER_BIN=docker
 PORT_RANGE_START=21000
 PORT_RANGE_END=21999

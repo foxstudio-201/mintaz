@@ -6,15 +6,15 @@ import { randomSecret, encryptSecret } from '../util/crypto.js';
 import { createDeployment, stopDeployment } from '../services/deploy.js';
 import { checkDeployQuota } from '../services/quotas.js';
 
-function projectView(p) {
+async function projectView(p) {
   if (!p) return p;
-  const counts = db
+  const counts = await db
     .prepare(`SELECT status, COUNT(*) c FROM deployments WHERE project_id = ? GROUP BY status`)
     .all(p.id);
-  const latest = db
+  const latest = await db
     .prepare(`SELECT id, status, type, branch, url, commit_sha, commit_msg, created_at FROM deployments WHERE project_id = ? ORDER BY created_at DESC LIMIT 1`)
     .get(p.id);
-  const previews = db
+  const previews = await db
     .prepare(`SELECT COUNT(*) c FROM preview_deployments WHERE project_id = ? AND status = 'active'`)
     .get(p.id);
   const { git_token, ...safe } = p;
@@ -31,10 +31,10 @@ function projectView(p) {
   };
 }
 
-function uniqueSlug(base) {
+async function uniqueSlug(base) {
   let slug = slugify(base);
   let n = 1;
-  while (db.prepare('SELECT id FROM projects WHERE slug = ?').get(slug)) {
+  while (await db.prepare('SELECT id FROM projects WHERE slug = ?').get(slug)) {
     slug = `${slugify(base)}-${++n}`;
   }
   return slug;
@@ -44,10 +44,12 @@ export default async function projectRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.get('/', async (request) => {
-    const rows = db
+    const rows = await db
       .prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY created_at DESC')
       .all(request.user.sub);
-    return { projects: rows.map(projectView) };
+    const projects = [];
+    for (const p of rows) projects.push(await projectView(p));
+    return { projects };
   });
 
   fastify.post('/', async (request, reply) => {
@@ -55,14 +57,14 @@ export default async function projectRoutes(fastify) {
     if (!b.name || !b.repo_url) {
       return reply.code(400).send({ error: 'name and repo_url are required' });
     }
-    const quota = checkDeployQuota(request.user.sub);
+    const quota = await checkDeployQuota(request.user.sub);
     if (!quota.allowed) {
       return reply.code(403).send({ error: quota.reason });
     }
     const id = nanoid();
-    const slug = uniqueSlug(b.slug || b.name);
+    const slug = await uniqueSlug(b.slug || b.name);
     const ts = Date.now();
-    db.prepare(
+    await db.prepare(
       `INSERT INTO projects
          (id, user_id, name, slug, public_slug, repo_url, git_token, branch, build_method, framework, output_dir, dockerfile_path,
           install_command, build_command, start_command, internal_port, restart_policy,
@@ -95,29 +97,29 @@ export default async function projectRoutes(fastify) {
 
     if (Array.isArray(b.env)) {
       const ins = db.prepare(
-        `INSERT INTO env_vars (id, project_id, scope, key, value) VALUES (?, ?, ?, ?, ?)`
+        `INSERT INTO env_vars (id, project_id, scope, \`key\`, value) VALUES (?, ?, ?, ?, ?)`
       );
       for (const e of b.env) {
-        if (e.key) ins.run(nanoid(), id, e.scope || 'all', e.key, String(e.value ?? ''));
+        if (e.key) await ins.run(nanoid(), id, e.scope || 'all', e.key, String(e.value ?? ''));
       }
     }
 
-    const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
     let deployment = null;
     if (b.deploy_now !== false) {
-      deployment = createDeployment(project, { type: 'production', trigger: 'manual' });
+      deployment = await createDeployment(project, { type: 'production', trigger: 'manual' });
     }
-    return reply.code(201).send({ project: projectView(project), deployment });
+    return reply.code(201).send({ project: await projectView(project), deployment });
   });
 
   fastify.get('/:id', async (request, reply) => {
-    const p = getOwned(request, reply);
+    const p = await getOwned(request, reply);
     if (!p) return;
-    return { project: projectView(p) };
+    return { project: await projectView(p) };
   });
 
   fastify.patch('/:id', async (request, reply) => {
-    const p = getOwned(request, reply);
+    const p = await getOwned(request, reply);
     if (!p) return;
     const b = request.body || {};
     const allowed = [
@@ -145,26 +147,26 @@ export default async function projectRoutes(fastify) {
     if (fields.length) {
       fields.push('updated_at = ?');
       values.push(Date.now(), p.id);
-      db.prepare(`UPDATE projects SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+      await db.prepare(`UPDATE projects SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     }
-    return { project: projectView(db.prepare('SELECT * FROM projects WHERE id = ?').get(p.id)) };
+    return { project: await projectView(await db.prepare('SELECT * FROM projects WHERE id = ?').get(p.id)) };
   });
 
   fastify.delete('/:id', async (request, reply) => {
-    const p = getOwned(request, reply);
+    const p = await getOwned(request, reply);
     if (!p) return;
-    const live = db.prepare(`SELECT id FROM deployments WHERE project_id = ? AND status = 'running'`).all(p.id);
+    const live = await db.prepare(`SELECT id FROM deployments WHERE project_id = ? AND status = 'running'`).all(p.id);
     for (const d of live) await stopDeployment(d.id);
-    db.prepare('DELETE FROM projects WHERE id = ?').run(p.id);
+    await db.prepare('DELETE FROM projects WHERE id = ?').run(p.id);
     return { ok: true };
   });
 
   fastify.post('/:id/deploy', async (request, reply) => {
-    const p = getOwned(request, reply);
+    const p = await getOwned(request, reply);
     if (!p) return;
     const b = request.body || {};
     const type = b.branch && b.branch !== p.branch ? 'preview' : 'production';
-    const deployment = createDeployment(p, {
+    const deployment = await createDeployment(p, {
       type: b.type || type,
       branch: b.branch || p.branch,
       prNumber: b.pr_number || null,
@@ -174,16 +176,16 @@ export default async function projectRoutes(fastify) {
   });
 
   fastify.post('/:id/rotate-secret', async (request, reply) => {
-    const p = getOwned(request, reply);
+    const p = await getOwned(request, reply);
     if (!p) return;
     const secret = randomSecret();
-    db.prepare('UPDATE projects SET webhook_secret = ?, updated_at = ? WHERE id = ?').run(secret, Date.now(), p.id);
+    await db.prepare('UPDATE projects SET webhook_secret = ?, updated_at = ? WHERE id = ?').run(secret, Date.now(), p.id);
     return { webhook_secret: secret };
   });
 }
 
-function getOwned(request, reply) {
-  const p = db.prepare('SELECT * FROM projects WHERE id = ?').get(request.params.id);
+async function getOwned(request, reply) {
+  const p = await db.prepare('SELECT * FROM projects WHERE id = ?').get(request.params.id);
   if (!p || p.user_id !== request.user.sub) {
     reply.code(404).send({ error: 'project not found' });
     return null;

@@ -554,6 +554,14 @@
     "referrers": "Nguồn giới thiệu",
     "countries": "Quốc gia",
     "devices": "Thiết bị",
-    "noData_short": "Không có dữ liệu"
+    "noData_short": "Không có dữ liệu",
+    "unknownCountry": "Không rõ",
+    "visitorsShort": "khách",
+    "visitorsByIp": "Khách truy cập (theo IP)",
+    "ipLabel": "Khách",
+    "location": "Vị trí",
+    "device": "Thiết bị",
+    "views": "Lượt xem",
+    "lastSeen": "Lần cuối"
   }
 }

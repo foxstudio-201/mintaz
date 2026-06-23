@@ -47,10 +47,9 @@ function portIsFree(port) {
 }
 
 export async function allocateHostPort() {
+  const rows = await db.prepare(`SELECT host_port FROM deployments WHERE host_port IS NOT NULL`).all();
   const used = new Set(
-    db
-      .prepare(`SELECT host_port FROM deployments WHERE host_port IS NOT NULL`)
-      .all()
+    rows
       .map((r) => r.host_port)
   );
   for (let p = config.portRangeStart; p <= config.portRangeEnd; p++) {

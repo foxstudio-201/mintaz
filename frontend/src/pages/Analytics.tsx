@@ -36,6 +36,7 @@ export function Analytics() {
   const [referrers, setReferrers] = useState<any[]>([]);
   const [countries, setCountries] = useState<any[]>([]);
   const [devices, setDevices] = useState<any>(null);
+  const [visitors, setVisitors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,14 +64,16 @@ export function Analytics() {
       api.analyticsReferrers(selectedDeploy, timeRange),
       api.analyticsCountries(selectedDeploy, timeRange),
       api.analyticsDevices(selectedDeploy, timeRange),
+      api.analyticsVisitors(selectedDeploy, timeRange).catch(() => ({ visitors: [] })),
     ])
-      .then(([summaryData, timeseriesData, pagesData, referrersData, countriesData, devicesData]) => {
+      .then(([summaryData, timeseriesData, pagesData, referrersData, countriesData, devicesData, visitorsData]) => {
         setSummary(summaryData);
         setTimeseries(timeseriesData.timeseries);
         setPages(pagesData.pages);
         setReferrers(referrersData.referrers);
         setCountries(countriesData.countries);
         setDevices(devicesData);
+        setVisitors(visitorsData.visitors);
       })
       .catch((e) => toast.error(e.message));
   }, [selectedDeploy, timeRange]);
@@ -188,8 +191,12 @@ export function Analytics() {
             <div className="space-y-2">
               {countries.map((c, i) => (
                 <div key={i} className="flex items-center justify-between border-b border-black/[0.06] pb-2 last:border-0 dark:border-white/[0.06]">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{c.country}</span>
+                  <span className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <span className="text-base">{flagEmoji(c.country)}</span>
+                    <span>{c.country || t('analytics.unknownCountry')}</span>
+                  </span>
                   <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500">{c.visitors} {t('analytics.visitorsShort')}</span>
                     <span className="text-sm font-medium text-slate-900 dark:text-white">{c.percentage}%</span>
                   </div>
                 </div>
@@ -216,8 +223,51 @@ export function Analytics() {
           )}
         </div>
       </div>
+
+      <div className="card overflow-hidden">
+        <div className="border-b border-black/[0.06] px-6 py-4 text-lg font-semibold text-slate-900 dark:border-white/[0.06] dark:text-white">
+          {t('analytics.visitorsByIp')}
+        </div>
+        {visitors.length > 0 ? (
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] gap-3 border-b border-black/[0.06] px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:border-white/[0.06]">
+                <span>{t('analytics.ipLabel')}</span>
+                <span>{t('analytics.location')}</span>
+                <span>{t('analytics.device')}</span>
+                <span className="text-right">{t('analytics.views')}</span>
+                <span className="text-right">{t('analytics.lastSeen')}</span>
+              </div>
+              {visitors.map((v, i) => (
+                <div key={i} className="grid grid-cols-[1fr_1.4fr_1.2fr_auto_auto] items-center gap-3 border-b border-black/[0.04] px-6 py-2.5 text-sm last:border-0 dark:border-white/[0.03]">
+                  <span className="font-mono text-xs text-slate-500">{v.ip_hash}</span>
+                  <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                    <span>{flagEmoji(v.country)}</span>
+                    <span className="truncate">{[v.city, v.country].filter(Boolean).join(', ') || t('analytics.unknownCountry')}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs">
+                    <span className="rounded-md bg-black/[0.05] px-1.5 py-0.5 capitalize text-slate-600 dark:bg-white/[0.06] dark:text-slate-300">{v.device_type || '—'}</span>
+                    <span className="truncate text-slate-500">{v.browser || ''}</span>
+                  </span>
+                  <span className="text-right font-semibold text-slate-800 dark:text-slate-100">{v.page_views}</span>
+                  <span className="text-right text-xs text-slate-500">{new Date(v.last_seen).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="p-6 text-sm text-slate-500 dark:text-slate-400">{t('analytics.noData_short')}</p>
+        )}
+      </div>
     </div>
   );
+}
+
+function flagEmoji(code: string | null) {
+  if (!code || code.length !== 2 || code === '??') return '🌐';
+  const cc = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return '🌐';
+  return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 
 function MetricCard({ label, value, change }: { label: string; value: number | string; change: number }) {

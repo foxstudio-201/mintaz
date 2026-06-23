@@ -13,15 +13,15 @@ import {
 import { setSetting, setSecretSetting } from '../services/settings.js';
 import { encryptSecret, decryptSecret } from '../util/crypto.js';
 
-function connection(userId) {
-  const row = db.prepare('SELECT github_login, github_token, github_avatar FROM users WHERE id = ?').get(userId);
+async function connection(userId) {
+  const row = await db.prepare('SELECT github_login, github_token, github_avatar FROM users WHERE id = ?').get(userId);
   if (row?.github_token) row.github_token = decryptSecret(row.github_token);
   return row;
 }
 
 export default async function githubRoutes(fastify) {
   fastify.get('/status', { onRequest: [fastify.authenticate] }, async (request) => {
-    const c = connection(request.user.sub);
+    const c = await connection(request.user.sub);
     return {
       configured: oauthConfigured(),
       connected: Boolean(c?.github_token),
@@ -39,9 +39,9 @@ export default async function githubRoutes(fastify) {
 
   fastify.post('/config', { onRequest: [fastify.authenticate] }, async (request) => {
     const b = request.body || {};
-    if (typeof b.public_url === 'string') setSetting('gh_public_url', b.public_url.trim().replace(/\/+$/, ''));
-    if (typeof b.client_id === 'string') setSetting('gh_client_id', b.client_id.trim());
-    if (typeof b.client_secret === 'string' && b.client_secret.trim()) setSecretSetting('gh_client_secret', b.client_secret.trim());
+    if (typeof b.public_url === 'string') await setSetting('gh_public_url', b.public_url.trim().replace(/\/+$/, ''));
+    if (typeof b.client_id === 'string') await setSetting('gh_client_id', b.client_id.trim());
+    if (typeof b.client_secret === 'string' && b.client_secret.trim()) await setSecretSetting('gh_client_secret', b.client_secret.trim());
     return { configured: oauthConfigured(), client_id: clientId(), public_url: publicUrl(), callback_url: callbackUrl() };
   });
 
@@ -69,7 +69,7 @@ export default async function githubRoutes(fastify) {
     try {
       const token = await exchangeCode(code);
       const user = await getUser(token);
-      db.prepare(
+      await db.prepare(
         'UPDATE users SET github_login = ?, github_token = ?, github_avatar = ? WHERE id = ?'
       ).run(user.login, encryptSecret(token), user.avatar, userId);
       return redirect('github=connected');
@@ -84,7 +84,7 @@ export default async function githubRoutes(fastify) {
     if (!token) return reply.code(400).send({ error: 'token required' });
     try {
       const user = await getUser(token);
-      db.prepare('UPDATE users SET github_login = ?, github_token = ?, github_avatar = ? WHERE id = ?').run(
+      await db.prepare('UPDATE users SET github_login = ?, github_token = ?, github_avatar = ? WHERE id = ?').run(
         user.login,
         encryptSecret(token),
         user.avatar,
@@ -97,12 +97,12 @@ export default async function githubRoutes(fastify) {
   });
 
   fastify.post('/disconnect', { onRequest: [fastify.authenticate] }, async (request) => {
-    db.prepare('UPDATE users SET github_login = NULL, github_token = NULL, github_avatar = NULL WHERE id = ?').run(request.user.sub);
+    await db.prepare('UPDATE users SET github_login = NULL, github_token = NULL, github_avatar = NULL WHERE id = ?').run(request.user.sub);
     return { ok: true };
   });
 
   fastify.get('/repos', { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    const c = connection(request.user.sub);
+    const c = await connection(request.user.sub);
     if (!c?.github_token) return reply.code(400).send({ error: 'GitHub not connected' });
     try {
       const repos = await listRepos(c.github_token);
@@ -114,7 +114,7 @@ export default async function githubRoutes(fastify) {
   });
 
   fastify.get('/repos/:owner/:repo/branches', { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    const c = connection(request.user.sub);
+    const c = await connection(request.user.sub);
     if (!c?.github_token) return reply.code(400).send({ error: 'GitHub not connected' });
     try {
       const branches = await listBranches(c.github_token, request.params.owner, request.params.repo);

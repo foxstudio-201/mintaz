@@ -37,22 +37,22 @@ export function scanRepoEnv(dir) {
   return merged;
 }
 
-export function importRepoEnv(projectId, dir, onLine) {
+export async function importRepoEnv(projectId, dir, onLine) {
   const found = scanRepoEnv(dir);
   const keys = Object.keys(found);
   if (!keys.length) return [];
 
   const existing = new Set(
-    db.prepare('SELECT key FROM env_vars WHERE project_id = ?').all(projectId).map((r) => r.key)
+    (await db.prepare('SELECT `key` FROM env_vars WHERE project_id = ?').all(projectId)).map((r) => r.key)
   );
   const ins = db.prepare(
-    'INSERT OR IGNORE INTO env_vars (id, project_id, scope, key, value) VALUES (?, ?, ?, ?, ?)'
+    'INSERT OR IGNORE INTO env_vars (id, project_id, scope, `key`, value) VALUES (?, ?, ?, ?, ?)'
   );
   const imported = [];
   for (const k of keys) {
     if (existing.has(k)) continue;
     const val = found[k].value;
-    ins.run(nanoid(), projectId, 'all', k, val);
+    await ins.run(nanoid(), projectId, 'all', k, val);
     imported.push(k);
   }
   if (imported.length) {

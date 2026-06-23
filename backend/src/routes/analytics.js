@@ -1,12 +1,16 @@
 import { db } from '../db/index.js';
 
+const DAY_EXPR = db.kind === 'mysql'
+  ? 'DATE(FROM_UNIXTIME(`timestamp` / 1000))'
+  : "DATE(`timestamp` / 1000, 'unixepoch')";
+
 export default async function analyticsRoutes(fastify) {
   fastify.addHook('onRequest', fastify.authenticate);
 
   fastify.get('/deployments', async (request) => {
     const userId = request.user.sub;
 
-    const deployments = db.prepare(`
+    const deployments = await db.prepare(`
       SELECT
         d.id,
         d.project_id,
@@ -37,26 +41,26 @@ export default async function analyticsRoutes(fastify) {
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
     const prevSince = since - days * 24 * 60 * 60 * 1000;
 
-    const current = db.prepare(`
+    const current = await db.prepare(`
       SELECT
         COUNT(DISTINCT ip_hash) as visitors,
         COUNT(*) as page_views,
         AVG(duration) as avg_duration
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
     `).get(deploymentId, since);
 
-    const previous = db.prepare(`
+    const previous = await db.prepare(`
       SELECT
         COUNT(DISTINCT ip_hash) as visitors,
         COUNT(*) as page_views,
         AVG(duration) as avg_duration
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ? AND timestamp <= ?
+      WHERE deployment_id = ? AND \`timestamp\` > ? AND \`timestamp\` <= ?
     `).get(deploymentId, prevSince, since);
 
-    const bounceRate = calculateBounceRate(deploymentId, since);
-    const prevBounceRate = calculateBounceRate(deploymentId, prevSince, since);
+    const bounceRate = await calculateBounceRate(deploymentId, since);
+    const prevBounceRate = await calculateBounceRate(deploymentId, prevSince, since);
 
     return {
       visitors: {
@@ -83,14 +87,14 @@ export default async function analyticsRoutes(fastify) {
     const days = parseInt(request.query.days) || 7;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const timeseries = db.prepare(`
+    const timeseries = await db.prepare(`
       SELECT
-        DATE(timestamp / 1000, 'unixepoch') as date,
+        ${DAY_EXPR} as date,
         COUNT(DISTINCT ip_hash) as visitors,
         COUNT(*) as page_views
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
-      GROUP BY DATE(timestamp / 1000, 'unixepoch')
+      WHERE deployment_id = ? AND \`timestamp\` > ?
+      GROUP BY ${DAY_EXPR}
       ORDER BY date ASC
     `).all(deploymentId, since);
 
@@ -103,13 +107,13 @@ export default async function analyticsRoutes(fastify) {
     const limit = parseInt(request.query.limit) || 10;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const pages = db.prepare(`
+    const pages = await db.prepare(`
       SELECT
         path,
         COUNT(DISTINCT ip_hash) as visitors,
         COUNT(*) as page_views
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
       GROUP BY path
       ORDER BY visitors DESC
       LIMIT ?
@@ -124,7 +128,7 @@ export default async function analyticsRoutes(fastify) {
     const limit = parseInt(request.query.limit) || 10;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const referrers = db.prepare(`
+    const referrers = await db.prepare(`
       SELECT
         CASE
           WHEN referrer LIKE 'https://%' OR referrer LIKE 'http://%'
@@ -133,7 +137,7 @@ export default async function analyticsRoutes(fastify) {
         END as source,
         COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ? AND referrer IS NOT NULL AND referrer != ''
+      WHERE deployment_id = ? AND \`timestamp\` > ? AND referrer IS NOT NULL AND referrer != ''
       GROUP BY source
       ORDER BY visitors DESC
       LIMIT ?
@@ -148,18 +152,18 @@ export default async function analyticsRoutes(fastify) {
     const limit = parseInt(request.query.limit) || 10;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const totalVisitors = db.prepare(`
+    const totalVisitors = await db.prepare(`
       SELECT COUNT(DISTINCT ip_hash) as total
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
     `).get(deploymentId, since);
 
-    const countries = db.prepare(`
+    const countries = await db.prepare(`
       SELECT
         country,
         COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ? AND country IS NOT NULL
+      WHERE deployment_id = ? AND \`timestamp\` > ? AND country IS NOT NULL
       GROUP BY country
       ORDER BY visitors DESC
       LIMIT ?
@@ -180,33 +184,33 @@ export default async function analyticsRoutes(fastify) {
     const days = parseInt(request.query.days) || 7;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const totalVisitors = db.prepare(`
+    const totalVisitors = await db.prepare(`
       SELECT COUNT(DISTINCT ip_hash) as total
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
     `).get(deploymentId, since);
 
-    const devices = db.prepare(`
+    const devices = await db.prepare(`
       SELECT device_type, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
       GROUP BY device_type
       ORDER BY visitors DESC
     `).all(deploymentId, since);
 
-    const browsers = db.prepare(`
+    const browsers = await db.prepare(`
       SELECT browser, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
       GROUP BY browser
       ORDER BY visitors DESC
       LIMIT 10
     `).all(deploymentId, since);
 
-    const operatingSystems = db.prepare(`
+    const operatingSystems = await db.prepare(`
       SELECT os, COUNT(DISTINCT ip_hash) as visitors
       FROM page_views
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
       GROUP BY os
       ORDER BY visitors DESC
       LIMIT 10
@@ -226,19 +230,45 @@ export default async function analyticsRoutes(fastify) {
     };
   });
 
+  fastify.get('/:deploymentId/visitors', async (request) => {
+    const { deploymentId } = request.params;
+    const days = parseInt(request.query.days) || 7;
+    const limit = parseInt(request.query.limit) || 50;
+    const since = Date.now() - days * 24 * 60 * 60 * 1000;
+
+    const visitors = await db.prepare(`
+      SELECT
+        ip_hash,
+        COUNT(*) as page_views,
+        MAX(\`timestamp\`) as last_seen,
+        MAX(country) as country,
+        MAX(city) as city,
+        MAX(device_type) as device_type,
+        MAX(browser) as browser,
+        MAX(os) as os
+      FROM page_views
+      WHERE deployment_id = ? AND \`timestamp\` > ? AND ip_hash IS NOT NULL
+      GROUP BY ip_hash
+      ORDER BY last_seen DESC
+      LIMIT ?
+    `).all(deploymentId, since, limit);
+
+    return { visitors: visitors.map((v) => ({ ...v, ip_hash: String(v.ip_hash || '').slice(0, 12) })) };
+  });
+
   fastify.get('/:deploymentId/events', async (request) => {
     const { deploymentId } = request.params;
     const days = parseInt(request.query.days) || 7;
     const limit = parseInt(request.query.limit) || 10;
     const since = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const events = db.prepare(`
+    const events = await db.prepare(`
       SELECT
         event_name,
         COUNT(*) as count,
         COUNT(DISTINCT ip_hash) as unique_visitors
       FROM custom_events
-      WHERE deployment_id = ? AND timestamp > ?
+      WHERE deployment_id = ? AND \`timestamp\` > ?
       GROUP BY event_name
       ORDER BY count DESC
       LIMIT ?
@@ -248,14 +278,14 @@ export default async function analyticsRoutes(fastify) {
   });
 }
 
-function calculateBounceRate(deploymentId, since, until = Date.now()) {
-  const sessions = db.prepare(`
+async function calculateBounceRate(deploymentId, since, until = Date.now()) {
+  const sessions = await db.prepare(`
     SELECT
       ip_hash,
-      DATE(timestamp / 1000, 'unixepoch') as date,
+      ${DAY_EXPR} as date,
       COUNT(*) as page_count
     FROM page_views
-    WHERE deployment_id = ? AND timestamp > ? AND timestamp <= ?
+    WHERE deployment_id = ? AND \`timestamp\` > ? AND \`timestamp\` <= ?
     GROUP BY ip_hash, date
   `).all(deploymentId, since, until);
 

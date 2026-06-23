@@ -53,6 +53,14 @@ export const config = {
 
   dbDriver: env.DB_DRIVER || 'sqlite',
   postgresUrl: env.POSTGRES_URL || null,
+  mysql: {
+    host: env.DB_HOST || '127.0.0.1',
+    port: num(env.DB_PORT, 3306),
+    database: env.DB_NAME || 'mintaz',
+    user: env.DB_USER || 'mintaz',
+    password: env.DB_PASSWORD || '',
+  },
+  redisUrl: env.REDIS_URL || null,
 
   dockerBin: env.DOCKER_BIN || 'docker',
   portRangeStart: num(env.PORT_RANGE_START, 21000),
