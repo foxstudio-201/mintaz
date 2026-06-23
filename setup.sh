@@ -138,6 +138,23 @@ ensure_cloudflared() {
   ok "cloudflared installed."
 }
 
+ensure_chromium() {
+  # Headless browser used to capture deployment preview screenshots (Vercel-style).
+  # Optional: if it fails, previews just fall back to a placeholder.
+  for b in google-chrome-stable google-chrome chromium chromium-browser; do
+    if command -v "$b" >/dev/null 2>&1; then ok "Chromium/Chrome already installed (for previews)."; return; fi
+  done
+  log "Installing Chromium (for preview screenshots)…"
+  case "$PKG" in
+    apt) pkg_install chromium || pkg_install chromium-browser || warn "Chromium install failed — previews will be disabled." ;;
+    dnf|yum) pkg_install chromium || warn "Chromium install failed — previews will be disabled." ;;
+    pacman) pkg_install chromium || warn "Chromium install failed — previews will be disabled." ;;
+  esac
+  for b in chromium chromium-browser google-chrome-stable google-chrome; do
+    if command -v "$b" >/dev/null 2>&1; then ok "Chromium ready (for previews)."; return; fi
+  done
+}
+
 ask()        { local p="$1" d="${2:-}" v; read -rp "$(echo -e "${c_blu}?${c_reset} $p ${c_dim}[${d}]${c_reset}: ")" v; echo "${v:-$d}"; }
 ask_secret() { local p="$1" v; read -rsp "$(echo -e "${c_blu}?${c_reset} $p: ")" v; echo >&2; echo "$v"; }
 ask_yn()     { local p="$1" d="${2:-y}" v; read -rp "$(echo -e "${c_blu}?${c_reset} $p ${c_dim}(y/n) [${d}]${c_reset}: ")" v; v="${v:-$d}"; [[ "$v" =~ ^[Yy] ]]; }
@@ -344,6 +361,7 @@ main() {
   ensure_pm2
   if [ "$PROXY" = caddy ]; then ensure_caddy; else ensure_nginx; fi
   ensure_cloudflared
+  ensure_chromium
 
   hr; echo -e "${c_bold}Configuring Mintaz${c_reset}"; hr
   write_env

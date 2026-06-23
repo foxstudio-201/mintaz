@@ -6,7 +6,7 @@ import { api, type Project, type QuotaStatusResponse } from '../lib/api';
 import { toast } from '../store/toast';
 import { useAuth } from '../store/auth';
 import { CardSkeleton, EmptyState, StatusBadge, timeAgo } from '../components/ui';
-import { IconPlus, IconRocket, IconBranch, IconProjects, IconDeploy, IconServer, IconTimer, IconStorage, IconBandwidth, IconCpu, IconMemory } from '../components/icons';
+import { IconPlus, IconRocket, IconBranch, IconProjects, IconDeploy, IconServer, IconTimer, IconStorage, IconBandwidth, IconCpu, IconMemory, IconGlobe, IconRefresh } from '../components/icons';
 import { QuotaBanner } from '../components/QuotaBanner';
 import { QuotaCard } from '../components/QuotaCard';
 
@@ -112,6 +112,37 @@ function Stat({ label, value, good }: { label: string; value: any; good?: boolea
   );
 }
 
+function CardShot({ project }: { project: Project }) {
+  const latest = project.latestDeployment;
+  const [url, setUrl] = useState('');
+  const [state, setState] = useState<'loading' | 'ready' | 'none'>('loading');
+
+  useEffect(() => {
+    if (!latest || latest.status !== 'running') { setState('none'); return; }
+    let alive = true;
+    let obj = '';
+    setState('loading');
+    api.deploymentScreenshot(latest.id)
+      .then((u) => { if (alive) { obj = u; setUrl(u); setState('ready'); } })
+      .catch(() => { if (alive) setState('none'); });
+    return () => { alive = false; if (obj) URL.revokeObjectURL(obj); };
+  }, [latest?.id, latest?.status]);
+
+  return (
+    <div className="relative aspect-[16/9] w-full overflow-hidden border-b border-white/5 bg-ink-950">
+      {state === 'ready' ? (
+        <img src={url} alt="" className="h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.02]" />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          {state === 'loading'
+            ? <IconRefresh className="w-5 h-5 animate-spin text-slate-600" />
+            : <IconGlobe className="w-6 h-6 text-slate-700" />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjectCard({ project, index }: { project: Project; index: number }) {
   const { t } = useTranslation();
   const latest = project.latestDeployment;
@@ -121,7 +152,9 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
     >
-      <Link to={`/projects/${project.id}`} className="card group block p-5 transition hover:border-brand-500/40 hover:shadow-glow">
+      <Link to={`/projects/${project.id}`} className="card group block overflow-hidden transition hover:border-brand-500/40 hover:shadow-glow">
+        <CardShot project={project} />
+        <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-ink-700 to-ink-800 text-sm font-semibold text-brand-300">
@@ -143,6 +176,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           <span className="inline-flex items-center gap-1"><IconBranch className="w-3.5 h-3.5" /> {project.branch}</span>
           <span>{t('dashboard.card.preview', { count: project.activePreviews })}</span>
           <span>{latest ? timeAgo(latest.created_at) : t('dashboard.card.neverDeployed')}</span>
+        </div>
         </div>
       </Link>
     </motion.div>
