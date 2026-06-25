@@ -9,12 +9,14 @@ import { fileURLToPath } from 'node:url';
 import { config, publicBaseUrl } from './config.js';
 import { db } from './db/index.js';
 import { isMaintenance, maintenancePage } from './services/maintenance.js';
+import { renderDeploymentStatus, appSubdomainOf } from './services/statuspage.js';
 
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import deploymentRoutes from './routes/deployments.js';
 import envRoutes from './routes/env.js';
+import databaseRoutes from './routes/databases.js';
 import webhookRoutes from './routes/webhooks.js';
 import githubRoutes from './routes/github.js';
 import cloudflareRoutes from './routes/cloudflare.js';
@@ -75,10 +77,22 @@ fastify.addHook('onRequest', async (request, reply) => {
   return reply.code(503).type('text/html; charset=utf-8').send(maintenancePage());
 });
 
+// Fallback for app subdomains routed here by the reverse proxy (Caddy/Nginx
+// wildcard, or the built-in edge proxy): if a request for `<app>.<baseDomain>`
+// reaches the backend, no running container is serving it — render a deployment
+// status page (failed / building / none) instead of the dashboard SPA.
+fastify.addHook('onRequest', async (request, reply) => {
+  const sub = appSubdomainOf(request.headers.host);
+  if (!sub) return;
+  const { statusCode, html } = await renderDeploymentStatus(sub);
+  return reply.code(statusCode).type('text/html; charset=utf-8').send(html);
+});
+
 await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(projectRoutes, { prefix: '/api/projects' });
 await fastify.register(deploymentRoutes, { prefix: '/api/deployments' });
 await fastify.register(envRoutes, { prefix: '/api/env' });
+await fastify.register(databaseRoutes, { prefix: '/api/databases' });
 await fastify.register(webhookRoutes, { prefix: '/api/webhooks' });
 await fastify.register(githubRoutes, { prefix: '/api/github' });
 await fastify.register(cloudflareRoutes, { prefix: '/api/cloudflare' });

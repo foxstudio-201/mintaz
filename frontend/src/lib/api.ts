@@ -12,6 +12,58 @@ export type Profile = {
 
 export type EnvVar = { id?: string; scope: 'all' | 'production' | 'preview'; key: string; value: string };
 
+export type DbEngine = 'postgres' | 'mysql' | 'redis' | 'mongodb';
+
+export type EngineInfo = { id: DbEngine; label: string; defaultPort: number; defaultPrefix: string };
+
+export type Database = {
+  id: string;
+  name: string;
+  engine: DbEngine;
+  host: string | null;
+  port: number | null;
+  database_name: string | null;
+  username: string | null;
+  ssl: boolean;
+  has_password: boolean;
+  has_connection_url: boolean;
+  created_at: number;
+  updated_at: number;
+};
+
+export type DatabaseInput = {
+  name: string;
+  engine: DbEngine;
+  host?: string;
+  port?: number | string | null;
+  database_name?: string;
+  username?: string;
+  password?: string;
+  ssl?: boolean;
+  connection_url?: string;
+};
+
+export type DbScope = 'all' | 'production' | 'preview';
+
+export type DatabaseAttachment = {
+  attachment_id: string;
+  database_id: string;
+  name: string;
+  engine: DbEngine;
+  scope: DbScope;
+  env_prefix: string | null;
+  attached_at: number;
+  keys: string[];
+  collisions: string[];
+};
+
+export type ConnectionTestResult = {
+  ok: boolean;
+  level: 'authenticated' | 'reachable';
+  message: string;
+  latencyMs: number;
+};
+
 export type Framework = {
   id: string;
   label: string;
@@ -169,6 +221,18 @@ export const api = {
 
   getEnv: (projectId: string) => req<{ env: EnvVar[] }>(`/env/${projectId}`),
   putEnv: (projectId: string, env: EnvVar[]) => req<{ env: EnvVar[] }>(`/env/${projectId}`, { method: 'PUT', body: JSON.stringify({ env }) }),
+
+  dbEngines: () => req<{ engines: EngineInfo[] }>('/databases/engines'),
+  listDatabases: () => req<{ databases: Database[] }>('/databases'),
+  createDatabase: (body: DatabaseInput) => req<{ database: Database }>('/databases', { method: 'POST', body: JSON.stringify(body) }),
+  updateDatabase: (id: string, body: Partial<DatabaseInput>) => req<{ database: Database }>(`/databases/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteDatabase: (id: string) => req<{ ok: boolean }>(`/databases/${id}`, { method: 'DELETE' }),
+  testDatabase: (id: string) => req<ConnectionTestResult>(`/databases/${id}/test`, { method: 'POST' }),
+  getProjectDatabases: (projectId: string) => req<{ attachments: DatabaseAttachment[] }>(`/databases/project/${projectId}/attachments`),
+  attachDatabase: (projectId: string, body: { database_id: string; scope?: DbScope; env_prefix?: string }) =>
+    req<{ ok: boolean; attachment_id: string; keys: string[] }>(`/databases/project/${projectId}/attach`, { method: 'POST', body: JSON.stringify(body) }),
+  detachDatabase: (projectId: string, databaseId: string) =>
+    req<{ ok: boolean }>(`/databases/project/${projectId}/attach/${databaseId}`, { method: 'DELETE' }),
 
   deliveries: (projectId: string) => req<{ deliveries: any[] }>(`/webhooks/deliveries/${projectId}`),
 

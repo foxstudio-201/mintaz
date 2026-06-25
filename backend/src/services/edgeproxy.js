@@ -2,6 +2,7 @@ import http from 'node:http';
 import net from 'node:net';
 import { db } from '../db/index.js';
 import { config, dashUrl } from '../config.js';
+import { renderDeploymentStatus } from './statuspage.js';
 
 async function resolveTarget(hostHeader) {
   const host = String(hostHeader || '').split(':')[0].toLowerCase();
@@ -15,17 +16,15 @@ async function resolveTarget(hostHeader) {
     .prepare(`SELECT c.host_port, c.deployment_id FROM containers c WHERE c.subdomain = ? AND c.status = 'running' ORDER BY c.created_at DESC LIMIT 1`)
     .get(sub);
   if (row?.host_port) return { port: row.host_port, name: sub, isApp: true, deploymentId: row.deployment_id };
-  return null;
+  // Valid app subdomain but nothing running — render a deployment status page
+  // (failed / building / none) instead of a blank/generic error.
+  return { statusSub: sub };
 }
 
-function badGateway(res, host) {
-  res.writeHead(502, { 'content-type': 'text/html; charset=utf-8' });
-  res.end(
-    `<!doctype html><meta charset=utf-8><title>502</title>` +
-      `<body style="font-family:system-ui;background:#0b0f1a;color:#e2e8f0;display:grid;place-items:center;height:100vh;margin:0">` +
-      `<div style="text-align:center"><h1 style="font-size:2rem;margin:0 0 .5rem">502 · no app here yet</h1>` +
-      `<p style="color:#94a3b8">No running deployment is serving <b>${host || '?'}</b>.</p></div>`
-  );
+async function serveStatus(res, sub) {
+  const { statusCode, html } = await renderDeploymentStatus(sub);
+  res.writeHead(statusCode, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(html);
 }
 
 export function startEdgeProxy() {
@@ -33,7 +32,11 @@ export function startEdgeProxy() {
 
   const server = http.createServer(async (req, res) => {
     const t = await resolveTarget(req.headers.host);
-    if (!t) return badGateway(res, req.headers.host);
+    if (!t) {
+      res.writeHead(502, { 'content-type': 'text/plain' });
+      return res.end('502 unknown host');
+    }
+    if (t.statusSub) return serveStatus(res, t.statusSub);
 
     const upstream = http.request(
       { host: '127.0.0.1', port: t.port, method: req.method, path: req.url, headers: req.headers },
@@ -80,7 +83,7 @@ export function startEdgeProxy() {
 
   server.on('upgrade', async (req, socket, head) => {
     const t = await resolveTarget(req.headers.host);
-    if (!t) return socket.destroy();
+    if (!t || t.statusSub || !t.port) return socket.destroy();
     const up = net.connect(t.port, '127.0.0.1', () => {
       const headerLines = Object.entries(req.headers).map(([k, v]) => `${k}: ${v}`);
       up.write(`${req.method} ${req.url} HTTP/1.1\r\n${headerLines.join('\r\n')}\r\n\r\n`);

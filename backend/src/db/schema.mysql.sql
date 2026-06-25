@@ -224,3 +224,35 @@ CREATE TABLE IF NOT EXISTS notifications (
   KEY idx_notif_user (user_id, created_at),
   CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS databases (
+  id             VARCHAR(64) PRIMARY KEY,
+  user_id        VARCHAR(64) NOT NULL,
+  name           VARCHAR(255) NOT NULL,
+  engine         VARCHAR(32) NOT NULL,
+  host           VARCHAR(255),
+  port           INT,
+  database_name  VARCHAR(255),
+  username       VARCHAR(255),
+  password       TEXT,
+  ssl            TINYINT NOT NULL DEFAULT 0,
+  connection_url TEXT,
+  options        TEXT,
+  created_at     BIGINT NOT NULL,
+  updated_at     BIGINT NOT NULL,
+  KEY idx_databases_user (user_id),
+  CONSTRAINT fk_databases_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS project_databases (
+  id          VARCHAR(64) PRIMARY KEY,
+  project_id  VARCHAR(64) NOT NULL,
+  database_id VARCHAR(64) NOT NULL,
+  scope       VARCHAR(32) NOT NULL DEFAULT 'all',
+  env_prefix  VARCHAR(191),
+  created_at  BIGINT NOT NULL,
+  UNIQUE KEY uniq_projdb (project_id, database_id),
+  KEY idx_projdb_project (project_id),
+  CONSTRAINT fk_projdb_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_projdb_database FOREIGN KEY (database_id) REFERENCES databases(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

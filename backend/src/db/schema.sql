@@ -213,3 +213,34 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS databases (
+  id             TEXT PRIMARY KEY,
+  user_id        TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,
+  engine         TEXT NOT NULL,
+  host           TEXT,
+  port           INTEGER,
+  database_name  TEXT,
+  username       TEXT,
+  password       TEXT,
+  ssl            INTEGER NOT NULL DEFAULT 0,
+  connection_url TEXT,
+  options        TEXT,
+  created_at     INTEGER NOT NULL,
+  updated_at     INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_databases_user ON databases(user_id);
+
+CREATE TABLE IF NOT EXISTS project_databases (
+  id          TEXT PRIMARY KEY,
+  project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  database_id TEXT NOT NULL REFERENCES databases(id) ON DELETE CASCADE,
+  scope       TEXT NOT NULL DEFAULT 'all',
+  env_prefix  TEXT,
+  created_at  INTEGER NOT NULL,
+  UNIQUE(project_id, database_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_projdb_project ON project_databases(project_id);

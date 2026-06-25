@@ -20,6 +20,7 @@ import {
 import { syncProxy } from './proxy.js';
 import { upsertCname } from './cloudflare.js';
 import { importRepoEnv } from './envscan.js';
+import { envVarsFor } from './databases.js';
 import { getSetting, getSecretSetting } from './settings.js';
 import { decryptSecret } from '../util/crypto.js';
 import { checkDeployQuota } from './quotas.js';
@@ -81,10 +82,30 @@ async function setStatus(id, status, extra = {}) {
 }
 
 async function envFor(project, type) {
+  const env = {};
+
+  // Managed variables from attached external databases (Vercel-style). Computed
+  // dynamically so they are never stale. Ordered deterministically; user env_vars
+  // override on key conflict (overlaid below).
+  const attached = await db
+    .prepare(
+      `SELECT pd.scope AS attach_scope, pd.env_prefix AS env_prefix, d.*
+         FROM project_databases pd
+         JOIN databases d ON d.id = pd.database_id
+        WHERE pd.project_id = ?
+        ORDER BY pd.created_at, pd.id`
+    )
+    .all(project.id);
+  for (const a of attached) {
+    if (a.attach_scope !== 'all' && a.attach_scope !== type) continue;
+    const vars = envVarsFor(a, a.env_prefix);
+    for (const [k, v] of Object.entries(vars)) env[k] = v;
+  }
+
+  // User-defined env vars take precedence over managed ones.
   const rows = await db
     .prepare('SELECT scope, `key`, value FROM env_vars WHERE project_id = ?')
     .all(project.id);
-  const env = {};
   for (const r of rows) {
     if (r.scope === 'all' || r.scope === type) env[r.key] = r.value;
   }

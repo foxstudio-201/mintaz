@@ -282,6 +282,7 @@ configure_proxy() {
     touch "$CADDY_SNIPPET"
     chown "$RUN_USER":"$RUN_USER" "$CADDY_SNIPPET" 2>/dev/null || true
     sed -e "s|__DASH_DOMAIN__|$DASH_DOMAIN|g" \
+        -e "s|__BASE_DOMAIN__|$BASE_DOMAIN|g" \
         -e "s|__API_PORT__|$API_PORT|g" \
         -e "s|__PROXY_HTTP_PORT__|$PROXY_HTTP_PORT|g" \
         -e "s|__CADDY_SNIPPET__|$CADDY_SNIPPET|g" \
@@ -295,6 +296,7 @@ configure_proxy() {
     touch "$NGINX_SNIPPET"
     chown "$RUN_USER":"$RUN_USER" "$NGINX_SNIPPET" 2>/dev/null || true
     sed -e "s|__DASH_DOMAIN__|$DASH_DOMAIN|g" \
+        -e "s|__BASE_DOMAIN__|$BASE_DOMAIN|g" \
         -e "s|__API_PORT__|$API_PORT|g" \
         -e "s|__PROXY_HTTP_PORT__|$PROXY_HTTP_PORT|g" \
         "$INSTALL_DIR/deploy/nginx/mintaz.conf.template" > /etc/nginx/conf.d/mintaz-dash.conf
